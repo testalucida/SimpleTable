@@ -35,8 +35,9 @@ OBJECTDIR=${CND_BUILDDIR}/${CND_CONF}/${CND_PLATFORM}
 
 # Object Files
 OBJECTFILES= \
-	${OBJECTDIR}/_ext/290b13e2/Fl_Table_Copy.o \
-	${OBJECTDIR}/_ext/290b13e2/SimpleTable.o
+	${OBJECTDIR}/_ext/c3d16e37/Fl_Table_Copy.o \
+	${OBJECTDIR}/_ext/c3d16e37/SimpleTable.o \
+	${OBJECTDIR}/_ext/c3d16e37/TwoTables.o
 
 
 # C Compiler Flags
@@ -65,15 +66,20 @@ ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/libsimpletable.a: ${OBJECTFILES}
 	${AR} -rv ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/libsimpletable.a ${OBJECTFILES} 
 	$(RANLIB) ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/libsimpletable.a
 
-${OBJECTDIR}/_ext/290b13e2/Fl_Table_Copy.o: /home/max/cpp/fltk/SimpleTable/Fl_Table_Copy.cpp 
-	${MKDIR} -p ${OBJECTDIR}/_ext/290b13e2
+${OBJECTDIR}/_ext/c3d16e37/Fl_Table_Copy.o: /home/max/cpp/fltk/SimpleTable/src/Fl_Table_Copy.cpp 
+	${MKDIR} -p ${OBJECTDIR}/_ext/c3d16e37
 	${RM} "$@.d"
-	$(COMPILE.cc) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/290b13e2/Fl_Table_Copy.o /home/max/cpp/fltk/SimpleTable/Fl_Table_Copy.cpp
+	$(COMPILE.cc) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/c3d16e37/Fl_Table_Copy.o /home/max/cpp/fltk/SimpleTable/src/Fl_Table_Copy.cpp
 
-${OBJECTDIR}/_ext/290b13e2/SimpleTable.o: /home/max/cpp/fltk/SimpleTable/SimpleTable.cpp 
-	${MKDIR} -p ${OBJECTDIR}/_ext/290b13e2
+${OBJECTDIR}/_ext/c3d16e37/SimpleTable.o: /home/max/cpp/fltk/SimpleTable/src/SimpleTable.cpp 
+	${MKDIR} -p ${OBJECTDIR}/_ext/c3d16e37
 	${RM} "$@.d"
-	$(COMPILE.cc) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/290b13e2/SimpleTable.o /home/max/cpp/fltk/SimpleTable/SimpleTable.cpp
+	$(COMPILE.cc) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/c3d16e37/SimpleTable.o /home/max/cpp/fltk/SimpleTable/src/SimpleTable.cpp
+
+${OBJECTDIR}/_ext/c3d16e37/TwoTables.o: /home/max/cpp/fltk/SimpleTable/src/TwoTables.cpp 
+	${MKDIR} -p ${OBJECTDIR}/_ext/c3d16e37
+	${RM} "$@.d"
+	$(COMPILE.cc) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/c3d16e37/TwoTables.o /home/max/cpp/fltk/SimpleTable/src/TwoTables.cpp
 
 # Subprojects
 .build-subprojects:

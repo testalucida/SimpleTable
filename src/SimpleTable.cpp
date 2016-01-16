@@ -69,7 +69,6 @@ int SimpleTable::handle( int evt ) {
             if( Fl::focus( ) != this ) {
                 Fl::focus( this );
             }
-//            fprintf( stderr, "click in %d, %d\n", r, c );
             if( !canSelectCell( r, c ) ) {
                 return 1;
             } else {
@@ -78,12 +77,28 @@ int SimpleTable::handle( int evt ) {
                 return 1;
             }
             break;
+        case FL_KEYDOWN:
+        {
+            int key = Fl::event_key();
+            if( key == FL_Tab || key == FL_Down || key == FL_Up || 
+                key == FL_Left || key == FL_Right ) 
+            {
+                Fl_Table_Copy::handle( evt );
+                doSelectionCallback( context );
+                return 1;
+            }
+            
+        }
         case FL_DRAG:
             if( !_enableDragging ) {
                 return 1;
             } else {
                 Fl_Table_Copy::handle( evt );
-                doSelectionCallback( context );
+                if( context == CONTEXT_COL_HEADER ) {
+                    
+                } else {
+                    doSelectionCallback( context );
+                }
                 return 1;
             }
             break;

@@ -6,6 +6,7 @@
                    projectFiles="true">
       <itemPath>/home/max/cpp/fltk/SimpleTable/Fl_Table_Copy.h</itemPath>
       <itemPath>/home/max/cpp/fltk/SimpleTable/SimpleTable.h</itemPath>
+      <itemPath>/home/max/cpp/fltk/SimpleTable/TwoTables.h</itemPath>
     </logicalFolder>
     <logicalFolder name="ResourceFiles"
                    displayName="Resource Files"
@@ -14,8 +15,9 @@
     <logicalFolder name="SourceFiles"
                    displayName="Source Files"
                    projectFiles="true">
-      <itemPath>/home/max/cpp/fltk/SimpleTable/Fl_Table_Copy.cpp</itemPath>
-      <itemPath>/home/max/cpp/fltk/SimpleTable/SimpleTable.cpp</itemPath>
+      <itemPath>/home/max/cpp/fltk/SimpleTable/src/Fl_Table_Copy.cpp</itemPath>
+      <itemPath>/home/max/cpp/fltk/SimpleTable/src/SimpleTable.cpp</itemPath>
+      <itemPath>/home/max/cpp/fltk/SimpleTable/src/TwoTables.cpp</itemPath>
     </logicalFolder>
     <logicalFolder name="TestFiles"
                    displayName="Test Files"
@@ -54,24 +56,34 @@
           <output>lib/debug/libsimpletable.a</output>
         </archiverTool>
       </compileType>
-      <item path="/home/max/cpp/fltk/SimpleTable/Fl_Table_Copy.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
       <item path="/home/max/cpp/fltk/SimpleTable/Fl_Table_Copy.h"
             ex="false"
             tool="3"
             flavor2="0">
       </item>
-      <item path="/home/max/cpp/fltk/SimpleTable/SimpleTable.cpp"
+      <item path="/home/max/cpp/fltk/SimpleTable/SimpleTable.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="/home/max/cpp/fltk/SimpleTable/TwoTables.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="/home/max/cpp/fltk/SimpleTable/src/Fl_Table_Copy.cpp"
             ex="false"
             tool="1"
             flavor2="0">
       </item>
-      <item path="/home/max/cpp/fltk/SimpleTable/SimpleTable.h"
+      <item path="/home/max/cpp/fltk/SimpleTable/src/SimpleTable.cpp"
             ex="false"
-            tool="3"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="/home/max/cpp/fltk/SimpleTable/src/TwoTables.cpp"
+            ex="false"
+            tool="1"
             flavor2="0">
       </item>
     </conf>
@@ -97,24 +109,34 @@
         <archiverTool>
         </archiverTool>
       </compileType>
-      <item path="/home/max/cpp/fltk/SimpleTable/Fl_Table_Copy.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
       <item path="/home/max/cpp/fltk/SimpleTable/Fl_Table_Copy.h"
             ex="false"
             tool="3"
             flavor2="0">
       </item>
-      <item path="/home/max/cpp/fltk/SimpleTable/SimpleTable.cpp"
+      <item path="/home/max/cpp/fltk/SimpleTable/SimpleTable.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="/home/max/cpp/fltk/SimpleTable/TwoTables.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="/home/max/cpp/fltk/SimpleTable/src/Fl_Table_Copy.cpp"
             ex="false"
             tool="1"
             flavor2="0">
       </item>
-      <item path="/home/max/cpp/fltk/SimpleTable/SimpleTable.h"
+      <item path="/home/max/cpp/fltk/SimpleTable/src/SimpleTable.cpp"
             ex="false"
-            tool="3"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="/home/max/cpp/fltk/SimpleTable/src/TwoTables.cpp"
+            ex="false"
+            tool="1"
             flavor2="0">
       </item>
     </conf>
