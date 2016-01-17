@@ -36,29 +36,35 @@ public:
     my::TableData* getTableData() { return _pData; }
     int handle( int );
     bool isNothingSelected();
+    /**prevents a column of TableData from beeing displayed*/
     void hideColumn( const char * );
-    void enableDragging( bool enable ) { _enableDragging = enable;}
+    void setSelectionMode( SelectionMode selMode ) { _selMode = selMode; }
     virtual bool canSelectCell ( int r, int c ) { return true; }
     virtual Fl_Color getCellBackground( int row, int col, bool isSelected ) const;
     int getModelIndex( int viewIndex ) const;
     void setAlternatingColumnColor( Fl_Color color = fl_lighter( fl_rgb_color( 242, 234, 255 ) ) );    
     void setAlternatingRowColor( Fl_Color color = fl_lighter( fl_rgb_color( 242, 234, 255 ) ) );
     int getVScrollbarWidth() const;
-    int getAllColumnsWidth();
+    /**return the width of all columns optional including rowheader */
+    int getAllColumnsWidth( bool includeRowHeader = true );
     bool isVScrollbarVisible() const;
     void setScrollCallback( ScrollCallback, void * );
     void setScrollValue( char orientation, int newValue );
     void setSelectionCallback( SelectionCallback, void * );
     void setResizeCallback( ResizeCallback, void * );
     virtual void resize(int x, int y, int w, int h);
+    /**fills the available table width by dividing table width by
+     the number of columns and giving all columns the same 
+     column width*/
     void makeColumnsFit();
-//    static void event_callback( Fl_Widget*, void *v ) { // table's event callback (static)
-//        ( (SimpleTable*) v )->event_callback2( );
-//    }
     virtual ~SimpleTable() {};
 protected:
     virtual void draw_cell( TableContext context, int = 0, int = 0, int = 0, int = 0, int = 0, int = 0 );
-//    void event_callback2( ); // table's event callback (instance)
+    
+    /**is beeing called if the user resizes a column.
+       Fills possibly occuring empty spaces by expanding the 
+       last column*/
+    virtual void checkEmptySpaceAndFill();
    
 private:
 //    void adjustSelection( TableContext, int, int );
@@ -72,7 +78,7 @@ private:
     std::vector<IndexRel> _indexRelations;
     std::vector<IndexRel> _tmp;
     SelectionMode _selMode;
-    bool _enableDragging;
+    //bool _enableDragging;
     bool _isAlternatingColumnColor;
     bool _isAlternatingRowColor;       
     Fl_Color _backgroundColor;

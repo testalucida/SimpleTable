@@ -15,7 +15,7 @@ SimpleTable::SimpleTable( int X, int Y, int W, int H, const char* L )
 , _headerFontsize( 12 )
 , _cellFontsize( 12 ) 
 , _selMode( SELECTIONMODE_CELL_SINGLE )
-, _enableDragging( true )
+//, _enableDragging( true )
 , _isAlternatingColumnColor( false )
 , _isAlternatingRowColor( false )
 , _backgroundColor ( FL_WHITE )
@@ -49,12 +49,12 @@ void SimpleTable::setTableData( my::TableData *pDataTable ) {
     _pData = pDataTable;
     rows( _pData->getRowCount( ) );
     cols( _pData->getColumnCount( ) );
-    printf( "cols: %d\n", cols() );
     for( int c = 0, cmax = pDataTable->getColumnCount(); c < cmax; c++ ) {
         IndexRel rel;
         rel.viewIdx = rel.modelIdx = c;
         _indexRelations.push_back( rel );
     }
+    makeColumnsFit();
     redraw( );
 }
 
@@ -87,15 +87,16 @@ int SimpleTable::handle( int evt ) {
                 doSelectionCallback( context );
                 return 1;
             }
-            
         }
         case FL_DRAG:
-            if( !_enableDragging ) {
+            if( context == CONTEXT_CELL && _selMode == SELECTIONMODE_CELL_SINGLE ) {
                 return 1;
             } else {
-                Fl_Table_Copy::handle( evt );
+                Fl_Table_Copy::handle( evt );                
                 if( context == CONTEXT_COL_HEADER ) {
-                    
+                    //resizing a column; 
+                    //check empty spaces of table and fill them, if any
+                    checkEmptySpaceAndFill();                    
                 } else {
                     doSelectionCallback( context );
                 }
@@ -200,67 +201,18 @@ void SimpleTable::draw_cell( TableContext context, int R, int C, int X, int Y, i
     }
 }
 
-/** Callback whenever someone clicks on different parts of the table */
-//void SimpleTable::event_callback2( ) {
-//    int R = callback_row( );
-//    int C = callback_col( );
-//    fprintf( stderr, "SimpleTable::event_callback2: R = %d, C = %d\n", R, C );
-//    TableContext context = callback_context( );
-//    //adjustSelection( context, R, C );
-////    switch( context ) {
-////        case CONTEXT_ROW_HEADER:
-////            if( isNothingSelected( ) ) {
-////                set_selection( R, 1, R, 1 );
-////                redraw( );
-////            }
-////            break;
-////        case CONTEXT_COL_HEADER:
-////            break;
-////        case CONTEXT_CELL:
-////        { // A table event occurred on a cell
-////            switch( Fl::event( ) ) { // see what FLTK event caused it
-////                case FL_PUSH: // mouse click?
-////                    adjustSelection( context, R, C );
-////                    return;
-////                case FL_KEYBOARD: // key press in table?
-////                    return;
-////            }
-////            return;
-////        }
-////        case CONTEXT_TABLE: // A table event occurred on dead zone in table
-////           return;
-////        default:
-////            return;
-////    }
-//}
-
-//void SimpleTable::adjustSelection( TableContext context, int r, int c ) {
-//    switch( context ) {
-//        case CONTEXT_CELL:
-//            switch ( _selMode ) {
-//                case SELECTIONMODE_CELL_SINGLE:
-//                    int x1, y1, x2, y2;
-//                    get_selection( x1, y1, x2, y2 );
-//                    fprintf( stderr, "selected before: %d, %d, %d, %d\n", x1, y1, x2, y2 );
-//                    set_selection( r, c, r, c );
-//                    fprintf( stderr, "selected after: %d, %d, %d, %d\n", x1, y1, x2, y2 );
-//                    redraw();
-//                    break;
-//                case SELECTIONMODE_CELL_MULTI:
-//                    break;
-//                default:
-//                    break;
-//            }
-//            break;
-//        case CONTEXT_ROW_HEADER:
-//        case CONTEXT_COL_HEADER:
-//        case CONTEXT_TABLE:
-//            //TODO
-//            break;
-//        default:
-//            break;
-//    }
-//}
+void SimpleTable::checkEmptySpaceAndFill() {
+    int w = getAllColumnsWidth( false );
+//    fprintf( stderr, 
+//             "SimpleTable::checkEmptySpaceAndFill -- all cols width: %d, tiw: %d ==> delta: %d\n", 
+//                     w, tiw, tiw - w );
+    if( w < tiw ) {
+        int d = tiw - w;
+        int lastColIdx = cols()-1;
+        Fl_Table_Copy::col_width( lastColIdx, col_width( lastColIdx ) + d );
+        redraw();
+    }
+}
 
 void SimpleTable::onScrollStatic( Fl_Widget *w, void *u ) {
     Fl_Table_Copy::scroll_cb( w, u );
@@ -326,8 +278,8 @@ int SimpleTable::getVScrollbarWidth() const {
     return vscrollbar->visible() ? vscrollbar->w() : 0;
 }
 
-int SimpleTable::getAllColumnsWidth() {
-    int w = row_header() ? row_header_width() : 0;
+int SimpleTable::getAllColumnsWidth( bool includeRowHeader) {
+    int w = ( includeRowHeader && row_header() ) ? row_header_width() : 0;
     for( int c = 0, cmax = cols(); c < cmax; c++ ) {
         w += col_width( c );
     }
@@ -364,20 +316,21 @@ void SimpleTable::setResizeCallback( ResizeCallback cb, void *pUserData ) {
 
 void SimpleTable::resize(int x, int y, int w, int h) {
     Fl_Table_Copy::resize( x, y, w, h );
+    checkEmptySpaceAndFill();
     if( _resizeCallback ) {
         ( *_resizeCallback ) ( x, y, w, h, _pResizeUserData );
     }
 }
 
 void SimpleTable::makeColumnsFit() {
-    int nCols = cols();
-    //int cw = ( w() - row_header_width() - 4 ) / nCols;
-    int cw = tiw / nCols;
-    int gw = 0;
-    for( int c = 0; c < (nCols - 1); c++ ) {
-        col_width( c, cw );
-        gw += cw;
+    int max = cols();
+    int colW = tiw / max;
+    int usedW = 0;
+    max--;
+    for( int c = 0; c < max; c++ ) {
+        col_width( c, colW );
+        usedW += colW;
     }
-    col_width( nCols-1, tiw - gw);
+    col_width( max, tiw - usedW );
     redraw();
 }
