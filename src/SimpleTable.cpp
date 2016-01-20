@@ -216,12 +216,12 @@ void SimpleTable::checkEmptySpaceAndFill() {
 //    fprintf( stderr, 
 //             "SimpleTable::checkEmptySpaceAndFill -- all cols width: %d, tiw: %d ==> delta: %d\n", 
 //                     w, tiw, tiw - w );
-    if( w < tiw ) {
+    //if( w < tiw ) {
         int d = tiw - w;
         int lastColIdx = cols()-1;
         Fl_Table_Copy::col_width( lastColIdx, col_width( lastColIdx ) + d );
         redraw();
-    }
+    //}
 }
 
 void SimpleTable::onScrollStatic( Fl_Widget *w, void *u ) {
