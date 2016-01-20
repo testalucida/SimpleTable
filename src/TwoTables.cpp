@@ -18,7 +18,8 @@ TwoTables::TwoTables( int x, int y, int w, int h, const char *pLbl )
     _pLeft->row_header( 1 );
     _pLeft->setAlternatingRowColor();
     _pLeft->setSelectionCallback( onLeftSelectionStatic, this );
-    _pLeft->setResizeCallback( onLeftResizeStatic, this );
+//    _pLeft->setResizeCallback( onLeftResizeStatic, this );
+    _pLeft->setResizeMode( RESIZEMODE_LAST_COL );
     _pLeft->tab_cell_nav( 0 );
     
     _pRight = new SimpleTable( _pLeft->x() + _pLeft->w(), _pLeft->y(),
@@ -26,7 +27,8 @@ TwoTables::TwoTables( int x, int y, int w, int h, const char *pLbl )
     _pRight->setAlternatingRowColor();
     _pRight->setScrollCallback( onRightTableScrollStatic, this );
     _pRight->setSelectionCallback( onRightSelectionStatic, this );
-    _pRight->setResizeCallback( onRightResizeStatic, this );
+//    _pRight->setResizeCallback( onRightResizeStatic, this );
+    _pRight->setResizeMode( RESIZEMODE_ALL_COLS );
     _pRight->tab_cell_nav( 0 );
     
 //    fprintf( stderr, "left: %d, %d, %d, %d\n", 
@@ -39,25 +41,24 @@ TwoTables::TwoTables( int x, int y, int w, int h, const char *pLbl )
 void TwoTables::setTableData( my::TableData *pData ) {
     _pLeft->setTableData( pData );
     _pRight->setTableData( pData );
-   
-    
+      
     _pLeft->showVScrollbar( false );
-    //_pLeft->makeColumnsFit();
-    
+    _pLeft->makeColumnsFit();
+  
     //strange Bug: empty space right of last column.
     //fix it explicitly:
-    int W = _pLeft->w() - _pLeft->row_header_width();
-    W -= 4; //borders
-    int cmax = _pLeft->cols();
-    int cw = W / cmax;
-    int gw = 0;
-    for( int c = 0; c < (cmax-1); c++ ) {
-        _pLeft->col_width( c, cw );
-        gw += cw;
-    }
-    int rem = W - gw;
-    _pLeft->col_width( cmax-1, rem );
-    _pLeft->redraw();
+//    int W = _pLeft->w() - _pLeft->row_header_width();
+//    W -= 4; //borders
+//    int cmax = _pLeft->cols();
+//    int cw = W / cmax;
+//    int gw = 0;
+//    for( int c = 0; c < (cmax-1); c++ ) {
+//        _pLeft->col_width( c, cw );
+//        gw += cw;
+//    }
+//    int rem = W - gw;
+//    _pLeft->col_width( cmax-1, rem );
+//    _pLeft->redraw();
     
     _pRight->set_selection( -1, -1, -1, -1 );
      _pLeft->set_selection( 0, 0, 0, 0 );
@@ -86,16 +87,16 @@ void TwoTables::onLeftSelection( Fl_Table_Copy::TableContext context,
  
  void TwoTables::onLeftResize( int x, int y, int w, int h ) {
      //_pLeft->makeColumnsFit();
-    fprintf( stderr, "-----TwoTables::onLeftResize-------\n" );
-    fprintf( stderr, "left: %d, %d, %d, %d -- parent->w = %d\n", 
-                     _pLeft->x(), _pLeft->y(), _pLeft->w(), _pLeft->h(), this->w() );
-    fprintf( stderr, "rght: %d, %d, %d, %d\n", 
-                     _pRight->x(), _pRight->y(), _pRight->w(), _pRight->h() );
-    fprintf( stderr, "-----------------------------------\n" );
+//    fprintf( stderr, "-----TwoTables::onLeftResize-------\n" );
+//    fprintf( stderr, "left: %d, %d, %d, %d -- parent->w = %d\n", 
+//                     _pLeft->x(), _pLeft->y(), _pLeft->w(), _pLeft->h(), this->w() );
+//    fprintf( stderr, "rght: %d, %d, %d, %d\n", 
+//                     _pRight->x(), _pRight->y(), _pRight->w(), _pRight->h() );
+//    fprintf( stderr, "-----------------------------------\n" );
  }
  
  void TwoTables::onRightResize( int x, int y, int w, int h ) {
-     _pRight->makeColumnsFit();
+     //_pRight->makeColumnsFit();
 //      fprintf( stderr, "left: %d, %d, %d, %d\n", 
 //                     _pLeft->x(), _pLeft->y(), _pLeft->w(), _pLeft->h() );
 //    fprintf( stderr, "rght: %d, %d, %d, %d\n", 

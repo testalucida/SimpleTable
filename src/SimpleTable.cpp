@@ -27,6 +27,7 @@ SimpleTable::SimpleTable( int X, int Y, int W, int H, const char* L )
 , _pSelectionUserData( NULL )
 , _resizeCallback( NULL )
 , _pResizeUserData( NULL )
+, _resizeMode( RESIZEMODE_LAST_COL )
 {
     // box( FL_FLAT_BOX );
     // color( fl_lighter( FL_LIGHT2 ) );
@@ -54,8 +55,9 @@ void SimpleTable::setTableData( my::TableData *pDataTable ) {
         rel.viewIdx = rel.modelIdx = c;
         _indexRelations.push_back( rel );
     }
-    makeColumnsFit();
-    redraw( );
+    //makeColumnsFit();
+//    adaptColumnWidthToContent();
+    //redraw( );
 }
 
 int SimpleTable::handle( int evt ) {
@@ -96,7 +98,7 @@ int SimpleTable::handle( int evt ) {
                 if( context == CONTEXT_COL_HEADER ) {
                     //resizing a column; 
                     //check empty spaces of table and fill them, if any
-                    checkEmptySpaceAndFill();                    
+//                    checkEmptySpaceAndFill();                    
                 } else {
                     doSelectionCallback( context );
                 }
@@ -178,18 +180,26 @@ void SimpleTable::draw_cell( TableContext context, int R, int C, int X, int Y, i
             return;
         case CONTEXT_CELL:
         { // table wants us to draw a cell
-            fl_push_clip( X - 1, Y - 1, W, H );
+            //fl_push_clip( X - 1, Y - 1, W, H );
+            fl_push_clip( X, Y, W, H );
             // Background
-            fl_draw_box( FL_THIN_UP_BOX, X - 1, Y - 1, W + 2, H + 2, 
+//            fl_draw_box( FL_FLAT_BOX, X - 1, Y - 1, W + 2, H + 2, 
+            fl_draw_box( FL_FLAT_BOX, X, Y, W, H, 
                          getCellBackground( R, C, is_selected( R, C ) ) );
-            {
-                if( _pData ) {
-                    fl_color( FL_BLACK );
-                    fl_font( FL_HELVETICA, _cellFontsize ); // ..in regular font
-                    fl_draw( _pData->getValue( R,  getModelIndex( C ) ), 
-                             X + 3, Y + 3, W - 6, H - 6, FL_ALIGN_RIGHT );
-                }
+            
+            //draw a vertical line between columns and a downsided horizontal one
+            fl_color( FL_GRAY );
+            fl_line( X - 1, Y, X - 1, Y + H - 1, X + W, Y + H - 1 );
+            //draw horizontal line between rows and a vertical right sided line
+            fl_line( X, Y - 1, X + W - 1, Y - 1, X + W - 1, Y + H );
+            
+            if( _pData ) {
+                fl_color( FL_BLACK );
+                fl_font( FL_HELVETICA, _cellFontsize ); // ..in regular font
+                fl_draw( _pData->getValue( R,  getModelIndex( C ) ), 
+                         X + 2, Y + 2, W - 4, H - 4, FL_ALIGN_LEFT );
             }
+            
             fl_pop_clip( );
             return;
         }
@@ -316,7 +326,11 @@ void SimpleTable::setResizeCallback( ResizeCallback cb, void *pUserData ) {
 
 void SimpleTable::resize(int x, int y, int w, int h) {
     Fl_Table_Copy::resize( x, y, w, h );
-    checkEmptySpaceAndFill();
+    if( _resizeMode == RESIZEMODE_LAST_COL ) {
+       checkEmptySpaceAndFill();
+    } else if( _resizeMode == RESIZEMODE_ALL_COLS ) {
+        makeColumnsFit();
+    }
     if( _resizeCallback ) {
         ( *_resizeCallback ) ( x, y, w, h, _pResizeUserData );
     }
@@ -333,4 +347,28 @@ void SimpleTable::makeColumnsFit() {
     }
     col_width( max, tiw - usedW );
     redraw();
+}
+
+void SimpleTable::adaptColumnWidthToContent() {
+	Fl_Font f = fl_font();
+    int fs = fl_size();
+    fl_font(labelfont(), _cellFontsize );
+
+    for( int c = 0, cmax = cols(); c < cmax; c++ ) {
+        int maxw = 0, w = 0, h = 0;
+        fl_measure( _pData->getColumnHeader( getModelIndex( c ) ), maxw, h, false );
+        maxw += 4; //some extra space for the column header
+        
+        for( int r = 0, rmax = rows(); r < rmax; r++ ) {
+            w = 0, h = 0;
+            fl_measure( _pData->getValue( r, getModelIndex( c ) ), w, h, 1 );
+            maxw = ( w > maxw ) ? w : maxw;
+        }
+
+        col_width( c, maxw+6 );
+    }
+    
+    redraw();
+
+    fl_font(f, fs);
 }

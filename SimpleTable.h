@@ -25,6 +25,12 @@ enum SelectionMode {
     SELECTIONMODE_CELL_MULTI
 };
 
+enum ResizeMode {
+    RESIZEMODE_NONE,
+    RESIZEMODE_LAST_COL,
+    RESIZEMODE_ALL_COLS  
+};
+
 typedef void (*ScrollCallback) (char orientiation, int scrollvalue, void * );
 typedef void (*SelectionCallback) (Fl_Table_Copy::TableContext, int r1, int c1, int r2, int c2, void * );
 typedef void (*ResizeCallback) (int x, int y, int w, int h, void * );
@@ -41,7 +47,7 @@ public:
     void setSelectionMode( SelectionMode selMode ) { _selMode = selMode; }
     virtual bool canSelectCell ( int r, int c ) { return true; }
     virtual Fl_Color getCellBackground( int row, int col, bool isSelected ) const;
-    int getModelIndex( int viewIndex ) const;
+    inline int getModelIndex( int viewIndex ) const;
     void setAlternatingColumnColor( Fl_Color color = fl_lighter( fl_rgb_color( 242, 234, 255 ) ) );    
     void setAlternatingRowColor( Fl_Color color = fl_lighter( fl_rgb_color( 242, 234, 255 ) ) );
     int getVScrollbarWidth() const;
@@ -51,12 +57,14 @@ public:
     void setScrollCallback( ScrollCallback, void * );
     void setScrollValue( char orientation, int newValue );
     void setSelectionCallback( SelectionCallback, void * );
+    void setResizeMode( ResizeMode mode ) { _resizeMode = mode; }
     void setResizeCallback( ResizeCallback, void * );
     virtual void resize(int x, int y, int w, int h);
     /**fills the available table width by dividing table width by
      the number of columns and giving all columns the same 
-     column width*/
+     width*/
     void makeColumnsFit();
+    void adaptColumnWidthToContent();
     virtual ~SimpleTable() {};
 protected:
     virtual void draw_cell( TableContext context, int = 0, int = 0, int = 0, int = 0, int = 0, int = 0 );
@@ -91,6 +99,7 @@ private:
     void *_pSelectionUserData;
     ResizeCallback _resizeCallback;
     void *_pResizeUserData;
+    ResizeMode _resizeMode;
 };
 
 #endif /* FLX_SPREADSHEET_H */
