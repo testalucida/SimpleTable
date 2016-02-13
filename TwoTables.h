@@ -21,6 +21,9 @@ class TwoTables : public Fl_Tile {
 public:
     TwoTables( int x, int y, int w, int h, const char *pLbl = 0 );
     
+//    TwoTables( int x, int y, int w, int h, const char *pLbl, 
+//               SimpleTable *pLeft, SimpleTable *pRight );
+    
     /**one Model for both the tables*/
     void setTableData( my::TableData *pData );
     
@@ -61,6 +64,8 @@ public:
     void onRightResize( int x, int y, int w, int h );
     
     virtual ~TwoTables();
+private:
+//    void initTables( SimpleTable *, bool rowHeader, ResizeMode );
 private:
     SimpleTable *_pLeft;
     SimpleTable *_pRight;

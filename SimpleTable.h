@@ -8,17 +8,12 @@
 #ifndef SIMPLE_TABLE_H
 #define SIMPLE_TABLE_H
 
-//#include <FL/Fl_Table_Row.H>
-//#include <FL/Fl_Table.H>
+
 #include "Fl_Table_Copy.h"
-#include <FL/Fl_Input.H>
+#include <FL/Enumerations.H>
 #include <my/TableData.h>
-
-
-struct IndexRel {
-    int viewIdx;
-    int modelIdx;
-};
+#include "ICellStyleProvider.h"
+#include <string>
 
 enum SelectionMode {
     SELECTIONMODE_CELL_SINGLE,
@@ -31,11 +26,71 @@ enum ResizeMode {
     RESIZEMODE_ALL_COLS  
 };
 
+class DefaultCellStyleProvider : public ICellStyleProvider {
+public:
+	DefaultCellStyleProvider();
+	virtual const BackgroundStyle& getBackgroundStyle( int row, int colIdxView, int
+	colIdxModel, bool isSelected );
+	virtual const FontStyle& getFontAndColor( int row, int colIdxView, int
+	colIdxModel );
+	virtual const FontStyle& getDefaultFontAndColor( Fl_Table_Copy::TableContext
+	context ) const;
+	virtual void setAlternatingColumnColor( Fl_Color color = fl_lighter(
+	fl_rgb_color( 242, 234, 255 ) ) ) {
+		_alternatingColumnColor = color;
+		_isAlternatingColumnColor = color == _cellBackground.backColor ? false : true;
+	}
+	virtual void setAlternatingRowColor( Fl_Color color = fl_lighter( fl_rgb_color(
+	242, 234, 255 ) ) ) {
+		_alternatingRowColor = color;
+		_isAlternatingRowColor = true;
+	}
+	virtual ~DefaultCellStyleProvider() {}
+protected:
+	//Cells
+	BackgroundStyle _cellBackground;
+	FontStyle _cellFontStyle;
+	BackgroundStyle _tmpBackground;
+	
+	//Column Headers
+	BackgroundStyle _colHeaderBackground;
+	FontStyle _colHeaderFontStyle;
+
+	//Row Headers
+	BackgroundStyle _rowHeaderBackground;
+	FontStyle _rowHeaderFontStyle;
+
+	bool _isAlternatingRowColor;
+	bool _isAlternatingColumnColor;
+	Fl_Color _alternatingRowColor;
+	Fl_Color _alternatingColumnColor;
+
+};
+
+
 typedef void (*ScrollCallback) (char orientiation, int scrollvalue, void * );
 typedef void (*SelectionCallback) (Fl_Table_Copy::TableContext, int r1, int c1, int r2, int c2, void * );
 typedef void (*ResizeCallback) (int x, int y, int w, int h, void * );
+typedef void (*PopupMenuCallback) ( int id, void * );
+
+struct Fl_Menu_Item;
+class Fl_Menu_Button;
 
 class SimpleTable : public Fl_Table_Copy {
+    struct IndexRel {
+        int viewIdx;
+        int modelIdx;
+    };
+    struct MenuItemEx {
+//        MenuItemEx();
+        std::string label;
+        int shortcut;
+        int flags;
+        int id;
+        void *userdata;
+        PopupMenuCallback cb;
+//        ~MenuItemEx();
+    };
 public:
     SimpleTable( int X, int Y, int W, int H, const char* L = 0 );
     void setTableData( my::TableData *pDataTable );
@@ -44,10 +99,21 @@ public:
     bool isNothingSelected();
     /**prevents a column of TableData from beeing displayed*/
     void hideColumn( const char * );
+	/** shows all hidden columns */
+	void unhideColumns();
+	/** shows a hidden column */
+	void unhideColumn( const char *pColName );
     void setSelectionMode( SelectionMode selMode ) { _selMode = selMode; }
     virtual bool canSelectCell ( int r, int c ) { return true; }
-    virtual Fl_Color getCellBackground( int row, int col, bool isSelected ) const;
+	/**
+	\deprecated
+	Wird nur noch von Calendar verwendet, deshalb können wir das hier nicht 
+	rausschmeißen.
+	*/
+    virtual Fl_Color getCellBackground( int row, int col, bool isSelected )
+    const;
     inline int getModelIndex( int viewIndex ) const;
+	inline int getViewIndex( int modelIndex ) const;
     void setAlternatingColumnColor( Fl_Color color = fl_lighter( fl_rgb_color( 242, 234, 255 ) ) );    
     void setAlternatingRowColor( Fl_Color color = fl_lighter( fl_rgb_color( 242, 234, 255 ) ) );
     int getVScrollbarWidth() const;
@@ -60,12 +126,34 @@ public:
     void setResizeMode( ResizeMode mode ) { _resizeMode = mode; }
     void setResizeCallback( ResizeCallback, void * );
     virtual void resize(int x, int y, int w, int h);
+	/**sets rows and cols to zero; releases pointer to TableData.
+	   Does *not* delete TableData. */
+	void releaseTableData();
     /**fills the available table width by dividing table width by
      the number of columns and giving all columns the same 
      width*/
     void makeColumnsFit();
-    void adaptColumnWidthToContent();
-    virtual ~SimpleTable() {};
+	/**makes a column fit to its widest content.
+	   if skipHiddenColumns == false, hidden columns will be unhide()ed 
+	   and adapted like the unhidden columns */
+    void adaptColumnWidthToContent( bool skipHiddenColumns = true );
+	void adaptColumnWidthToContent( int colIdx );
+	
+	/** set a ICellStyleProvider for drawing cell operations */
+	void setCellStyleProvider( ICellStyleProvider *pProvider ) { _pCellStyleProvider = pProvider; }
+
+	/**sets an ID for identifying purposes*/
+	void setId( const std::string &id ) { _id = id; }
+
+	/**gets the ID */
+	const std::string& getId() const { return _id; }
+    
+    /**adds a Menu-Item to the cell popup menu*/ 
+    void addCellPopupItem( const char *pLabel, int shortcut, int flags, 
+                           PopupMenuCallback, int id, void *pUserdata );
+
+    virtual ~SimpleTable() { /*TODO: delete DefaultCellStyleProvider, aber NICHT
+    einen CustomCellStyleProvider*/};
 protected:
     virtual void draw_cell( TableContext context, int = 0, int = 0, int = 0, int = 0, int = 0, int = 0 );
     
@@ -75,24 +163,25 @@ protected:
     virtual void checkEmptySpaceAndFill();
    
 private:
+	void tableDataCallback( my::TableData &src, my::DataChangedEvent &evt );
+	void createIndexRelations();
 //    void adjustSelection( TableContext, int, int );
+	void colWidth2Content( int colIdx );
     static void onScrollStatic( Fl_Widget *, void * );
     void onScroll( Fl_Scrollbar * );
     void doSelectionCallback( Fl_Table_Copy::TableContext );
+    void createCellPopup();
+    void showPopup( TableContext context, int x, int y, int r, int c );
+    void showColumnHeaderPopup( int x, int y, int c );
+    void showCellHeaderPopup( int x, int y, int r, int c );
+    void copySelectionToClipboard();
+    void search();
 private:
     my::TableData *_pData;
-    Fl_Fontsize _headerFontsize;
-    Fl_Fontsize _cellFontsize;
     std::vector<IndexRel> _indexRelations;
     std::vector<IndexRel> _tmp;
+	std::vector<IndexRel> _hidden;
     SelectionMode _selMode;
-    //bool _enableDragging;
-    bool _isAlternatingColumnColor;
-    bool _isAlternatingRowColor;       
-    Fl_Color _backgroundColor;
-    Fl_Color _alternatingColumnColor;
-    Fl_Color _alternatingRowColor;
-    //bool _hideVScrollbar;
     ScrollCallback _scrollCallback;
     void *_pScrollUserData;
     SelectionCallback _selectionCallback;
@@ -100,6 +189,11 @@ private:
     ResizeCallback _resizeCallback;
     void *_pResizeUserData;
     ResizeMode _resizeMode;
+	ICellStyleProvider *_pCellStyleProvider;
+	std::string _id;
+    std::vector<MenuItemEx*> _cellPopupItems;
+//    Fl_Menu_Button *_pCellPop;
+//    Fl_Menu_Item *_pCellPop;
 };
 
 #endif /* FLX_SPREADSHEET_H */

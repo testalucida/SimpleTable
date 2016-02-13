@@ -7,20 +7,96 @@
 
 #include "SimpleTable.h"
 #include <FL/fl_draw.H>
+#include <FL/Fl_Menu_Button.H>
+#include <FL/Fl_Menu_Item.H>
+#include "ICellStyleProvider.h"
 
 using namespace my;
 
+//===========================================================================
+//                        Implementation of ICellStyleProvider
+//===========================================================================
+
+DefaultCellStyleProvider::DefaultCellStyleProvider() 
+	: _isAlternatingRowColor( false )
+	, _isAlternatingColumnColor( false )
+	, _alternatingRowColor(fl_lighter( fl_lighter( FL_GREEN ) ) )
+	, _alternatingColumnColor( fl_lighter( fl_lighter( FL_GREEN ) ) )
+{
+	_colHeaderBackground.backColor = fl_lighter( FL_GRAY );
+	_rowHeaderBackground.backColor = fl_lighter( FL_GRAY );
+}
+
+const BackgroundStyle& DefaultCellStyleProvider::getBackgroundStyle( int row, int colIdxView, int colIdxModel, bool isSelected ) 								
+{
+	if( row < 0 ) {
+		return _colHeaderBackground;
+	} else if( colIdxView < 0 ) {
+		return _rowHeaderBackground;
+	} else {
+		//BackColor
+		_tmpBackground = _cellBackground.clone();
+		_tmpBackground.backColor = isSelected ? FL_YELLOW : _cellBackground.backColor;
+		if( !isSelected && ( _isAlternatingColumnColor || _isAlternatingRowColor ) ) {
+			if( _isAlternatingColumnColor ) {
+				int rem = colIdxView % 2;
+				if( rem != 0 ) _tmpBackground.backColor = _alternatingColumnColor;
+			}
+			if( _isAlternatingRowColor ) {
+				int rem = row % 2;
+				if( rem != 0 ) _tmpBackground.backColor = _alternatingRowColor;
+			}
+		}
+		
+		return _tmpBackground;
+	}
+}
+
+const FontStyle& DefaultCellStyleProvider::getFontAndColor( int row, int colIdxView, int colIdxModel ) 
+{
+	if( row < 0 ) {
+		//column header style
+		return _colHeaderFontStyle;
+	} else if( colIdxView < 0 ) {
+		//row header style
+		return _rowHeaderFontStyle;
+	} else {
+		// cell style
+		return _cellFontStyle;
+	}
+}
+
+const FontStyle& DefaultCellStyleProvider::getDefaultFontAndColor(
+Fl_Table_Copy::TableContext context ) const {
+	if( context == Fl_Table_Copy::TableContext::CONTEXT_CELL ) {
+		return _cellFontStyle;
+	} else if( context == Fl_Table_Copy::TableContext::CONTEXT_ROW_HEADER ) {
+		return _rowHeaderFontStyle;
+	} else if( context == Fl_Table_Copy::TableContext::CONTEXT_COL_HEADER ) {
+		return _colHeaderFontStyle;
+	} else {
+		return _cellFontStyle;
+	}
+}
+
+//===========================================================================
+//===========================================================================
+
+//MenuItemEx::MenuItemEx() {
+//    menu = new Fl_Menu_Button();
+//}
+//       
+//MenuItemEx::~MenuItemEx() {
+//    delete menuItem;
+//}
+        
+ //===========================================================================
+//===========================================================================       
+
 SimpleTable::SimpleTable( int X, int Y, int W, int H, const char* L )
 : Fl_Table_Copy( X, Y, W, H, L )
-, _headerFontsize( 12 )
-, _cellFontsize( 12 ) 
+, _pData( NULL )
 , _selMode( SELECTIONMODE_CELL_SINGLE )
-//, _enableDragging( true )
-, _isAlternatingColumnColor( false )
-, _isAlternatingRowColor( false )
-, _backgroundColor ( FL_WHITE )
-, _alternatingColumnColor( FL_WHITE )
-, _alternatingRowColor( FL_WHITE )
 , _scrollCallback( NULL )
 , _pScrollUserData( NULL )
 , _selectionCallback( NULL )
@@ -28,36 +104,103 @@ SimpleTable::SimpleTable( int X, int Y, int W, int H, const char* L )
 , _resizeCallback( NULL )
 , _pResizeUserData( NULL )
 , _resizeMode( RESIZEMODE_LAST_COL )
+, _pCellStyleProvider( new DefaultCellStyleProvider() )
 {
-    // box( FL_FLAT_BOX );
-    // color( fl_lighter( FL_LIGHT2 ) );
+   
 #if FLTK_ABI_VERSION >= 10303
     tab_cell_nav( 1 );
 #endif
+
     col_header( 1 );
     col_resize( 1 );
     row_header_color( FL_LIGHT1 | FL_GRAY );
     col_header_color( FL_LIGHT1 | FL_GRAY );
-//    callback( &event_callback, (void*) this );
-//    when( FL_WHEN_NOT_CHANGED |  when( ) );
+
     end( );
     set_selection( 0, 0, 0, 0 );
     
     vscrollbar->callback( onScrollStatic, this );
+    
+    createCellPopup();
+}
+
+void SimpleTable::createCellPopup() {
+    addCellPopupItem("Kopieren    ", FL_CTRL+'c', 0 /*flags*/, 0 /*PopupMenuCallback*/, -1, 0 );
+    addCellPopupItem( "Einfügen   ", FL_CTRL+'p', FL_MENU_DIVIDER | FL_MENU_INACTIVE, 0, -1, 0 );
+    addCellPopupItem( "Suchen...  ", FL_CTRL+'f', FL_MENU_DIVIDER, 0, -1, 0 );
+    addCellPopupItem( "Zeilen:    ",           0, FL_MENU_INACTIVE, 0, -1, 0 );
 }
 
 void SimpleTable::setTableData( my::TableData *pDataTable ) {
     _pData = pDataTable;
-    rows( _pData->getRowCount( ) );
-    cols( _pData->getColumnCount( ) );
-    for( int c = 0, cmax = pDataTable->getColumnCount(); c < cmax; c++ ) {
-        IndexRel rel;
-        rel.viewIdx = rel.modelIdx = c;
-        _indexRelations.push_back( rel );
-    }
-    //makeColumnsFit();
-//    adaptColumnWidthToContent();
-    //redraw( );
+	rows( _pData->getRowCount() ); 
+	cols( _pData->getColumnCount() );
+	_pData->signalDataChanged.disconnect < SimpleTable,
+	&SimpleTable::tableDataCallback >( this );
+	_pData->signalDataChanged.connect< SimpleTable, &SimpleTable::tableDataCallback
+	>( this );
+	createIndexRelations();
+    adaptColumnWidthToContent();
+}
+
+void SimpleTable::tableDataCallback( my::TableData &src, my::DataChangedEvent &evt ) {
+	switch( evt.dataChange ) {
+	case TABLEDATA_VALUE_CHANGED:
+	
+	break;
+	case TABLEDATA_ROW_ADDED:
+		rows( ++evt.row );		
+		break;
+	case TABLEDATA_COLUMN_ADDED:
+		cols( ++evt.col );		
+		createIndexRelations();
+		break;
+	case TABLEDATA_ROW_REMOVED:
+	{
+		int r = rows();
+		rows( --r );		
+		break;
+	}
+	case TABLEDATA_ALL_ROWS_REMOVED:
+		rows( 0 );		
+		break;
+	case TABLEDATA_COLUMN_REMOVED:
+	{
+		int c = cols();
+		cols( --c );	
+		createIndexRelations();
+		break;
+	}
+	case TABLEDATA_CLEARED:
+		rows( 0 );
+		cols( 0 );	
+		break;
+	case TABLEDATA_CHANGED:
+		clear();
+		rows( _pData->getRowCount() );
+		cols( _pData->getColumnCount() );		
+		break;
+	case TABLEDATA_SORTED:
+		break;
+	default:
+		throw( "Flx_Table::tableDataCallback: no such TableDataChange" );
+	}
+
+	redraw();
+}
+
+void SimpleTable::createIndexRelations() {
+	_indexRelations.clear();
+	_hidden.clear();
+	if( _pData ) {
+		rows( _pData->getRowCount() );
+		cols( _pData->getColumnCount() );
+		for( int c = 0, cmax = _pData->getColumnCount(); c < cmax; c++ ) {
+			IndexRel rel;
+			rel.viewIdx = rel.modelIdx = c;
+			_indexRelations.push_back( rel );
+		}
+	}
 }
 
 int SimpleTable::handle( int evt ) {
@@ -76,6 +219,9 @@ int SimpleTable::handle( int evt ) {
             } else {
                 Fl_Table_Copy::handle( evt );
                 doSelectionCallback( context );
+                if( Fl::event_state( FL_BUTTON3 ) ) {
+                    showPopup( context, Fl::event_x(), Fl::event_y(), r, c );
+                }
                 return 1;
             }
             break;
@@ -121,34 +267,32 @@ bool SimpleTable::isNothingSelected( ) {
 void SimpleTable::hideColumn( const char *pColName ) {
     //Model-Index der Spalte ermitteln...
     int modelIdx = _pData->getColumnIndex( pColName );
-          //Element des Index-Relations-Vectors holen:
-    
-    _tmp.clear();
-    int viewIndex = 0;
-    for_each( _indexRelations.begin(), _indexRelations.end(), 
-              [&]( IndexRel &ixrelAlt ) 
-    {
-        if( ixrelAlt.modelIdx != modelIdx ) {
-            IndexRel ixrelNeu;
-            ixrelNeu.viewIdx = viewIndex++;
-            ixrelNeu.modelIdx = ixrelAlt.modelIdx;
-            _tmp.push_back( ixrelNeu );
-        }
-    } );
-    
-    _indexRelations = _tmp;
-    
-    cols( cols( ) - 1 );
+	col_width( getViewIndex( modelIdx ), 0 );
+}
+
+void SimpleTable::unhideColumns() {
+	//createIndexRelations();
+	adaptColumnWidthToContent();
+}
+
+void SimpleTable::unhideColumn( const char *pColName ) {
+	//Model-Index der Spalte ermitteln...
+	int modelIdx = _pData->getColumnIndex( pColName );
+	adaptColumnWidthToContent( getViewIndex( modelIdx ) ); //TODO:  statt modelIdx	viewIdx aus IndexRel verwenden
+
+	//hack to enforce redraw of last column :
+	col_width( cols()-1, col_width( cols()-1 ) + 1 );
+	col_width( cols() - 1, col_width( cols() - 1 ) - 1 );
 }
 
 /** Handle drawing all cells in table */
-
 void SimpleTable::draw_cell( TableContext context, int R, int C, int X, int Y, int W, int H ) {
+	int c = getModelIndex( C );
     switch( context ) {
         case CONTEXT_STARTPAGE: // table about to redraw
             break;
         case CONTEXT_COL_HEADER: // table wants us to draw a column heading (C is column)
-            fl_font( FL_HELVETICA, _headerFontsize ); // set font for heading to bold
+			fl_font( FL_HELVETICA, _pCellStyleProvider->getFontAndColor( -1, C, c ).size ); // _headerFontsize ); // set font for heading to bold
             fl_push_clip( X - 1, Y, W, H ); // clip region for text
         {
             fl_draw_box( FL_FLAT_BOX, X, Y, W, H, col_header_color( ) );
@@ -157,23 +301,24 @@ void SimpleTable::draw_cell( TableContext context, int R, int C, int X, int Y, i
             fl_line( X - 1, Y, X - 1, Y + H - 1, X + W, Y + H - 1 );
             if( _pData ) {
                 fl_color( FL_BLACK );
-                fl_draw( _pData->getColumnHeader( getModelIndex( C ) ), 
-                         X, Y, W, H, FL_ALIGN_CENTER );
+                fl_draw( _pData->getColumnHeader( c ), X, Y, W, H,
+                FL_ALIGN_CENTER );
             }
         }
             fl_pop_clip( );
             return;
         case CONTEXT_ROW_HEADER: // table wants us to draw a row heading (R is row)
-            fl_font( FL_HELVETICA, _headerFontsize ); // set font for row heading to bold
+			fl_font( FL_HELVETICA, _pCellStyleProvider->getFontAndColor( R, -1, -1 ).size ); // set font for row heading to bold
             fl_push_clip( X, Y - 1, W + 1, H );
         {
             fl_draw_box( FL_FLAT_BOX, X, Y, W, H, row_header_color( ) );
             //draw horizontal line between rows and a vertical right sided line
-            fl_color( FL_GRAY );
+            fl_color( FL_GRAY);
             fl_line( X, Y - 1, X + W - 1, Y - 1, X + W - 1, Y + H );
             if( _pData ) {
                 fl_color( FL_BLACK );
-                fl_draw( _pData->getRowHeader( R ), X, Y, W, H, FL_ALIGN_CENTER );
+                fl_draw( _pData->getRowHeader( R ), X, Y, W, H, FL_ALIGN_CENTER
+                );
             }
         }
             fl_pop_clip( );
@@ -184,8 +329,14 @@ void SimpleTable::draw_cell( TableContext context, int R, int C, int X, int Y, i
             fl_push_clip( X, Y, W, H );
             // Background
 //            fl_draw_box( FL_FLAT_BOX, X - 1, Y - 1, W + 2, H + 2, 
-            fl_draw_box( FL_FLAT_BOX, X, Y, W, H, 
-                         getCellBackground( R, C, is_selected( R, C ) ) );
+						
+			BackgroundStyle backstyle = _pCellStyleProvider->getBackgroundStyle( R, C, c,
+			is_selected( R, C ) );
+			//fprintf( stderr, "drawing cell: %d, %d -- selected: %s ==> backColor: %d\n",
+			
+			//	     R, C, is_selected( R, C ) ? "true" : "false", backstyle.backColor );
+			fl_draw_box( backstyle.boxtype, X, Y, W, H, backstyle.backColor );             
+			         
             
             //draw a vertical line between columns and a downsided horizontal one
             fl_color( FL_GRAY );
@@ -193,10 +344,11 @@ void SimpleTable::draw_cell( TableContext context, int R, int C, int X, int Y, i
             //draw horizontal line between rows and a vertical right sided line
             fl_line( X, Y - 1, X + W - 1, Y - 1, X + W - 1, Y + H );
             
-            if( _pData ) {
-                fl_color( FL_BLACK );
-                fl_font( FL_HELVETICA, _cellFontsize ); // ..in regular font
-                fl_draw( _pData->getValue( R,  getModelIndex( C ) ), 
+            if( _pData ) {				
+				FontStyle fontstyle = _pCellStyleProvider->getFontAndColor( R, C, c );				
+                fl_color( fontstyle.color );
+                fl_font( fontstyle.font, fontstyle.size );
+                fl_draw( _pData->getValue( R,  c ), 
                          X + 2, Y + 2, W - 4, H - 4, FL_ALIGN_LEFT );
             }
             
@@ -214,7 +366,7 @@ void SimpleTable::draw_cell( TableContext context, int R, int C, int X, int Y, i
 void SimpleTable::checkEmptySpaceAndFill() {
     int w = getAllColumnsWidth( false );
 //    fprintf( stderr, 
-//             "SimpleTable::checkEmptySpaceAndFill -- all cols width: %d, tiw: %d ==> delta: %d\n", 
+//             "SimpleTable::checkEmptySpaceAndFill -- all cols width: %d, tiw:%d ==> delta: %d\n", 
 //                     w, tiw, tiw - w );
     //if( w < tiw ) {
         int d = tiw - w;
@@ -246,26 +398,15 @@ void SimpleTable::doSelectionCallback( TableContext context ) {
     
 }
 
+/**only for backward compatibility purposes*/
 Fl_Color SimpleTable::getCellBackground( int row, int col, bool isSelected ) const {
-    if( isSelected ) return FL_YELLOW;
-    
-    Fl_Color backColor = _backgroundColor;
-    
-    if( _isAlternatingColumnColor || _isAlternatingRowColor ) {        
-        if( _isAlternatingColumnColor ) {
-            int rem = col % 2;
-            if( rem != 0 ) backColor = _alternatingColumnColor;
-        }
-        if( _isAlternatingRowColor ) {
-            int rem = row % 2;
-            if( rem != 0 ) backColor = _alternatingRowColor;
-        }
-    }
-    return backColor;
+	return _pCellStyleProvider->getBackgroundStyle( row, col, getModelIndex( col ),
+	isSelected ).backColor;
 }
 
 int SimpleTable::getModelIndex( int viewIndex ) const {
-    for( auto itr = _indexRelations.begin(); itr != _indexRelations.end(); itr++ ) {
+    for( auto itr = _indexRelations.begin(); itr != _indexRelations.end(); itr++
+    ) {
         const IndexRel &ixRel = *itr; 
         if( ixRel.viewIdx == viewIndex ) {
             return ixRel.modelIdx;
@@ -274,14 +415,22 @@ int SimpleTable::getModelIndex( int viewIndex ) const {
     return -1;
 }
 
+int SimpleTable::getViewIndex( int modelIndex ) const {
+	for( auto itr = _indexRelations.begin(); itr != _indexRelations.end(); itr++ ) {
+		const IndexRel &ixRel = *itr;
+		if( ixRel.modelIdx == modelIndex ) {
+			return ixRel.viewIdx;
+		}
+	}
+	return -1;
+}
+
 void SimpleTable::setAlternatingColumnColor( Fl_Color color ) {
-    _alternatingColumnColor = color;
-    _isAlternatingColumnColor = color == _backgroundColor ? false : true;
+	_pCellStyleProvider->setAlternatingColumnColor( color );
 }
 
 void SimpleTable::setAlternatingRowColor( Fl_Color color ) {
-    _alternatingRowColor = color;
-    _isAlternatingRowColor = color == _backgroundColor ? false : true;
+	_pCellStyleProvider->setAlternatingRowColor( color );
 }
 
 int SimpleTable::getVScrollbarWidth() const {
@@ -327,9 +476,9 @@ void SimpleTable::setResizeCallback( ResizeCallback cb, void *pUserData ) {
 void SimpleTable::resize(int x, int y, int w, int h) {
     Fl_Table_Copy::resize( x, y, w, h );
     if( _resizeMode == RESIZEMODE_LAST_COL ) {
-       checkEmptySpaceAndFill();
+       //checkEmptySpaceAndFill();
     } else if( _resizeMode == RESIZEMODE_ALL_COLS ) {
-        makeColumnsFit();
+        //makeColumnsFit();
     }
     if( _resizeCallback ) {
         ( *_resizeCallback ) ( x, y, w, h, _pResizeUserData );
@@ -337,6 +486,7 @@ void SimpleTable::resize(int x, int y, int w, int h) {
 }
 
 void SimpleTable::makeColumnsFit() {
+	if( cols() == 0 ) return;
     int max = cols();
     int colW = tiw / max;
     int usedW = 0;
@@ -349,26 +499,145 @@ void SimpleTable::makeColumnsFit() {
     redraw();
 }
 
-void SimpleTable::adaptColumnWidthToContent() {
+void SimpleTable::adaptColumnWidthToContent( bool skipHiddenColumns ) {
 	Fl_Font f = fl_font();
     int fs = fl_size();
-    fl_font(labelfont(), _cellFontsize );
-
+    
     for( int c = 0, cmax = cols(); c < cmax; c++ ) {
-        int maxw = 0, w = 0, h = 0;
-        fl_measure( _pData->getColumnHeader( getModelIndex( c ) ), maxw, h, false );
-        maxw += 4; //some extra space for the column header
-        
-        for( int r = 0, rmax = rows(); r < rmax; r++ ) {
-            w = 0, h = 0;
-            fl_measure( _pData->getValue( r, getModelIndex( c ) ), w, h, 1 );
-            maxw = ( w > maxw ) ? w : maxw;
-        }
-
-        col_width( c, maxw+6 );
+		fl_font( labelfont(), _pCellStyleProvider->getFontAndColor( -1, c,
+		getModelIndex( c ) ).size );
+		if( col_width( c ) > 0 || !skipHiddenColumns ) {
+			colWidth2Content( c );
+		}
     }
     
     redraw();
 
     fl_font(f, fs);
+}
+
+void SimpleTable::adaptColumnWidthToContent( int colIdx ) {
+	Fl_Font f = fl_font();
+	int fs = fl_size();
+	fl_font( labelfont(), _pCellStyleProvider->getFontAndColor( -1, colIdx,
+	getModelIndex( colIdx ) ).size );
+
+	colWidth2Content( colIdx );
+
+	redraw();
+
+	fl_font( f, fs );
+}
+
+void SimpleTable::colWidth2Content( int colIdx ) {
+	int maxw = 0, w = 0, h = 0;
+	fl_measure( _pData->getColumnHeader( getModelIndex( colIdx ) ), maxw, h, false
+	);
+	maxw += 4; //some extra space for the column header
+
+	for( int r = 0, rmax = rows(); r < rmax; r++ ) {
+		w = 0, h = 0;
+		fl_measure( _pData->getValue( r, getModelIndex( colIdx ) ), w, h, 1 );
+		maxw = ( w > maxw ) ? w : maxw;
+	}
+
+	col_width( colIdx, maxw + 6 );
+}
+
+
+void SimpleTable::releaseTableData() {
+	_pData = NULL;
+	rows( 0 );
+	cols( 0 );
+	_indexRelations.clear();
+	
+	redraw();
+}
+
+void SimpleTable::addCellPopupItem( const char *pLabel, int shortcut, int flags,
+                                    PopupMenuCallback cb, int id, void *pUserdata ) 
+{
+    MenuItemEx *ex = new MenuItemEx();
+    ex->label = pLabel;
+    ex->shortcut = shortcut;
+    ex->flags = flags;
+    ex->id = id;
+    ex->userdata = pUserdata;
+    ex->cb = cb;
+    _cellPopupItems.push_back( ex );
+}
+
+void SimpleTable::showPopup( TableContext context, int x, int y, int r, int c ) {
+    if( context == CONTEXT_COL_HEADER ) {
+        showColumnHeaderPopup( x, y, c );
+    } else if( context == CONTEXT_CELL ) {
+        showCellHeaderPopup( x, y, r, c );
+    }
+}
+
+void SimpleTable::showColumnHeaderPopup( int x, int y, int c  ) {
+    
+}
+
+void SimpleTable::showCellHeaderPopup( int x, int y, int r, int c ) {
+    Fl_Menu_Button btn( 0, 0,0,0 );
+    for_each( _cellPopupItems.begin(), _cellPopupItems.end(), [&]( MenuItemEx *pItem ) {
+        string label = pItem->label;
+        if( _pData && label.length() > 7 && label.substr( 0, 7 ) == "Zeilen:"  ) {
+            label.append( to_string( _pData->getRowCount() ) );
+        }
+        btn.add( label.c_str(), 
+                 pItem->shortcut, 
+                 (Fl_Callback*) 0, 
+                 pItem->userdata, 
+                 pItem->flags );
+    });
+    
+    btn.position( x, y );
+    const Fl_Menu_Item *pSel = btn.popup();
+    
+    if( pSel ) {
+        switch( pSel->shortcut() ) {
+            case FL_CTRL+'c':
+                copySelectionToClipboard();
+                break;
+            case FL_CTRL+'p':
+                break;
+            case FL_CTRL+'f':
+                search();
+                break;
+            default:
+                for( auto itr = _cellPopupItems.begin(); 
+                     itr != _cellPopupItems.end(); itr++ ) 
+                {
+                    MenuItemEx *pItem = *itr;
+                    if( ! strcmp( pItem->label.c_str(), pSel->label() ) ) {
+                        (pItem->cb)( pItem->id, pItem->userdata );
+                    }
+                }
+                break;
+        }
+    }
+}
+
+const char *NEXTROW = "\n"; //separator for clipboard actions
+const char *NEXTCOL = "\t"; 
+
+void SimpleTable::copySelectionToClipboard() {
+    int r1, c1, r2, c2;
+    get_selection( r1, c1, r2, c2 );
+    string cp;
+    for( int r = r1; r <= r2; r++ ) {
+        for( int c = c1; c <= c2; c++ ) {            
+            const char *pVal = _pData->getValue( r, getModelIndex( c ) );
+            cp.append( pVal );
+            if( c < c2 ) cp.append( NEXTCOL );
+            else cp.append( NEXTROW );
+        }
+    }
+    Fl::copy( cp.c_str(), cp.size(), 1 );
+}
+
+void SimpleTable::search() {
+    fprintf( stderr, "searching");
 }

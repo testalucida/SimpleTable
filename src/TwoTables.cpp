@@ -14,11 +14,9 @@ TwoTables::TwoTables( int x, int y, int w, int h, const char *pLbl )
 : Fl_Tile( x, y, w, h, pLbl )
 {
     _pLeft = new SimpleTable( Fl_Tile::x(), Fl_Tile::y(), w/3, h );
-    //_pLeft = new SimpleTable( Fl_Tile::x(), Fl_Tile::y(), 200, 490 );
     _pLeft->row_header( 1 );
     _pLeft->setAlternatingRowColor();
     _pLeft->setSelectionCallback( onLeftSelectionStatic, this );
-//    _pLeft->setResizeCallback( onLeftResizeStatic, this );
     _pLeft->setResizeMode( RESIZEMODE_LAST_COL );
     _pLeft->tab_cell_nav( 0 );
     
@@ -27,16 +25,21 @@ TwoTables::TwoTables( int x, int y, int w, int h, const char *pLbl )
     _pRight->setAlternatingRowColor();
     _pRight->setScrollCallback( onRightTableScrollStatic, this );
     _pRight->setSelectionCallback( onRightSelectionStatic, this );
-//    _pRight->setResizeCallback( onRightResizeStatic, this );
     _pRight->setResizeMode( RESIZEMODE_ALL_COLS );
     _pRight->tab_cell_nav( 0 );
-    
-//    fprintf( stderr, "left: %d, %d, %d, %d\n", 
-//                     _pLeft->x(), _pLeft->y(), _pLeft->w(), _pLeft->h() );
-//    fprintf( stderr, "rght: %d, %d, %d, %d\n", 
-//                     _pRight->x(), _pRight->y(), _pRight->w(), _pRight->h() );
+
     end();
 }
+
+//TwoTables( int x, int y, int w, int h, const char *pLbl, 
+//               SimpleTable *pLeft, SimpleTable *pRight )
+//{
+//    
+//}
+
+//void TwoTables::initTables( SimpleTable *pTbl, bool rowHeader, ResizeMode mode ) {
+//    
+//}
 
 void TwoTables::setTableData( my::TableData *pData ) {
     _pLeft->setTableData( pData );

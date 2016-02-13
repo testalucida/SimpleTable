@@ -5,6 +5,7 @@
                    displayName="Header Files"
                    projectFiles="true">
       <itemPath>/home/max/cpp/fltk/SimpleTable/Fl_Table_Copy.h</itemPath>
+      <itemPath>/home/max/cpp/fltk/SimpleTable/ICellStyleProvider.h</itemPath>
       <itemPath>/home/max/cpp/fltk/SimpleTable/SimpleTable.h</itemPath>
       <itemPath>/home/max/cpp/fltk/SimpleTable/TwoTables.h</itemPath>
     </logicalFolder>
@@ -61,6 +62,11 @@
             tool="3"
             flavor2="0">
       </item>
+      <item path="/home/max/cpp/fltk/SimpleTable/ICellStyleProvider.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="/home/max/cpp/fltk/SimpleTable/SimpleTable.h"
             ex="false"
             tool="3"
@@ -110,6 +116,11 @@
         </archiverTool>
       </compileType>
       <item path="/home/max/cpp/fltk/SimpleTable/Fl_Table_Copy.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="/home/max/cpp/fltk/SimpleTable/ICellStyleProvider.h"
             ex="false"
             tool="3"
             flavor2="0">
