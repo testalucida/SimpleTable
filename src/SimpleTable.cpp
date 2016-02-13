@@ -641,3 +641,13 @@ void SimpleTable::copySelectionToClipboard() {
 void SimpleTable::search() {
     fprintf( stderr, "searching");
 }
+
+SimpleTable::~SimpleTable() { 
+    /*TODO: delete DefaultCellStyleProvider, aber NICHT
+    einen CustomCellStyleProvider*/
+    
+    for( auto itr = _cellPopupItems.begin(); itr != _cellPopupItems.end(); itr++) {
+//        _cellPopupItems.erase( itr );
+        delete *itr;
+    }
+}

@@ -152,8 +152,7 @@ public:
     void addCellPopupItem( const char *pLabel, int shortcut, int flags, 
                            PopupMenuCallback, int id, void *pUserdata );
 
-    virtual ~SimpleTable() { /*TODO: delete DefaultCellStyleProvider, aber NICHT
-    einen CustomCellStyleProvider*/};
+    virtual ~SimpleTable();
 protected:
     virtual void draw_cell( TableContext context, int = 0, int = 0, int = 0, int = 0, int = 0, int = 0 );
     
