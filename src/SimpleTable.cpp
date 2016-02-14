@@ -91,6 +91,8 @@ const char *COPY_WITH_SEP    = "Kopiere alle Spaltenwerte   /durch Kommas getren
 const char *COPY_WITHOUT_SEP = "Kopiere alle Spaltenwerte   /ohne Trennzeichen";
 const char *GOTO_COL = "Gehe zu Spalte";
 
+//RowHeader Menu Item
+const char *ROW_COPY = "Zeilenwerte kopieren";
 
 //Cell Menu Items
 const char *COPY =  "Kopieren   ";
@@ -111,6 +113,7 @@ SimpleTable::SimpleTable( int X, int Y, int W, int H, const char* L )
 , _resizeMode( RESIZEMODE_LAST_COL )
 , _pCellStyleProvider( new DefaultCellStyleProvider() )
 , _sortDirection( SORTDIRECTION_NONE )
+, _sortedColumn( -1 )
 {
    
 #if FLTK_ABI_VERSION >= 10303
@@ -127,11 +130,14 @@ SimpleTable::SimpleTable( int X, int Y, int W, int H, const char* L )
     
     vscrollbar->callback( onScrollStatic, this );
     
-    createCellPopup();
+    createCellAndRowPopup();
 }
 
 
-void SimpleTable::createCellPopup() {
+void SimpleTable::createCellAndRowPopup() {
+    MenuItemEx *ex = createMenuItemEx( ROW_COPY, 0, 0, 0, -1, 0 );
+    _rowHeaderPopItems.push_back( ex );
+    
     addCellPopupItem( ROWS, 0, FL_MENU_INACTIVE, 0, -1, 0 );
     addCellPopupItem( COPY, FL_CTRL+'c', 0 /*flags*/, 0 /*PopupMenuCallback*/, -1, 0 );
     addCellPopupItem( PASTE, FL_CTRL+'p', FL_MENU_DIVIDER | FL_MENU_INACTIVE, 0, -1, 0 );
@@ -145,10 +151,12 @@ void SimpleTable::setTableData( my::TableData *pDataTable ) {
 	cols( _pData->getColumnCount() );
 	_pData->signalDataChanged.disconnect < SimpleTable,
 	&SimpleTable::tableDataCallback >( this );
-	_pData->signalDataChanged.connect< SimpleTable, &SimpleTable::tableDataCallback
-	>( this );
+	_pData->signalDataChanged
+            .connect< SimpleTable, &SimpleTable::tableDataCallback>( this );
 	createIndexRelations();
     adaptColumnWidthToContent();
+    _sortDirection = SORTDIRECTION_NONE;
+    _sortedColumn = -1;
 }
 
 void SimpleTable::tableDataCallback( my::TableData &src, my::DataChangedEvent &evt ) {
@@ -226,8 +234,10 @@ int SimpleTable::handle( int evt ) {
                 return 1;
             } else {
                 Fl_Table_Copy::handle( evt );                
-                if( Fl::event_state( FL_BUTTON3 ) ) {
-                    set_selection( r, c, r, c );
+                if( Fl::event_state( FL_BUTTON3 ) ) {                    
+                    if( !isInCurrentSelection( r, c ) ) {
+                        set_selection( r, c, r, c );
+                    }
                 }
                 doSelectionCallback( context );
                 if( Fl::event_state( FL_BUTTON3 ) ) {
@@ -267,6 +277,14 @@ int SimpleTable::handle( int evt ) {
     }
     //return rc;
     return Fl_Table_Copy::handle( evt );
+}
+
+bool SimpleTable::isInCurrentSelection( int r, int c )  {
+    int r1, c1, r2, c2;
+    get_selection( r1, c1, r2, c2 );
+    if( r < r1 || r > r2 ) return false;
+    if( c < c1 || c > c2 ) return false;
+    return true;
 }
 
 bool SimpleTable::isNothingSelected( ) {
@@ -313,7 +331,16 @@ void SimpleTable::draw_cell( TableContext context, int R, int C, int X, int Y, i
             if( _pData ) {
                 fl_color( FL_BLACK );
                 fl_draw( _pData->getColumnHeader( c ), X, Y, W, H,
-                FL_ALIGN_CENTER );
+                         FL_ALIGN_CENTER );
+                if( C == _sortedColumn ) {
+                    string symbol;
+                    if( _sortDirection == SORTDIRECTION_DESC ) {
+                        symbol = "@-22DnArrow";
+                    } else {
+                        symbol =  "@-28DnArrow";
+                    }
+                    fl_draw( symbol.c_str(), X, Y, W, H, FL_ALIGN_RIGHT );
+                }
             }
         }
             fl_pop_clip( );
@@ -566,7 +593,8 @@ void SimpleTable::releaseTableData() {
 	rows( 0 );
 	cols( 0 );
 	_indexRelations.clear();
-	
+	_sortDirection = SORTDIRECTION_NONE;
+    _sortedColumn = -1;
 	redraw();
 }
 
@@ -574,13 +602,7 @@ void SimpleTable::releaseTableData() {
 void SimpleTable::addCellPopupItem( const char *pLabel, int shortcut, int flags,
                                     PopupMenuCallback cb, int id, void *pUserdata ) 
 {
-    MenuItemEx *ex = new MenuItemEx();
-    ex->label = pLabel;
-    ex->shortcut = shortcut;
-    ex->flags = flags;
-    ex->id = id;
-    ex->userdata = pUserdata;
-    ex->cb = cb;
+    MenuItemEx *ex = createMenuItemEx( pLabel, shortcut, flags, cb, id, pUserdata );
     
     auto itr = _cellPopItems.begin();
     for( ; itr != _cellPopItems.end(); itr++ ) {
@@ -594,11 +616,36 @@ void SimpleTable::addCellPopupItem( const char *pLabel, int shortcut, int flags,
     _cellPopItems.push_back( ex );
 }
 
+void
+SimpleTable::addRowHeaderPopupItem( const char *pLabel, int shortcut, int flags,
+                                    PopupMenuCallback cb, int id, void *pUserdata ) 
+{
+    MenuItemEx *ex = createMenuItemEx( pLabel, shortcut, flags, cb, id, pUserdata );
+    _rowHeaderPopItems.push_back( ex );
+}
+
+SimpleTable::MenuItemEx *
+SimpleTable::createMenuItemEx( const char *pLabel, int shortcut, int flags,
+                               PopupMenuCallback cb, int id, void *pUserdata ) 
+{
+    MenuItemEx *ex = new MenuItemEx();
+    ex->label = pLabel;
+    ex->shortcut = shortcut;
+    ex->flags = flags;
+    ex->id = id;
+    ex->userdata = pUserdata;
+    ex->cb = cb;
+    
+    return ex;
+}
+
 void SimpleTable::handlePopup( TableContext context, int x, int y, int r, int c ) {
     if( context == CONTEXT_COL_HEADER ) {
         handleColumnHeaderPopup( x, y, c );
     } else if( context == CONTEXT_CELL ) {
         handleCellPopup( x, y, r, c );
+    } else {
+        handleRowHeaderPopup( x, y, r );
     }
 }
 
@@ -620,11 +667,15 @@ void SimpleTable::handleColumnHeaderPopup( int x, int y, int c  ) {
             case 0:
                 if( _sortDirection != SORTDIRECTION_ASC ) {
                     _pData->sort( getModelIndex( c ), SORTDIRECTION_ASC );
+                    _sortDirection = SORTDIRECTION_ASC;
+                    _sortedColumn = c;
                 }
                 break;
             case 1:
                 if( _sortDirection != SORTDIRECTION_DESC ) {
                     _pData->sort( getModelIndex( c ), SORTDIRECTION_DESC );
+                    _sortDirection = SORTDIRECTION_DESC;
+                    _sortedColumn = c;
                 }
                 break;
             case 2:
@@ -647,8 +698,44 @@ void SimpleTable::handleColumnHeaderPopup( int x, int y, int c  ) {
     }
 }
 
+void SimpleTable::handleRowHeaderPopup( int x, int y, int r  ) {
+    Fl_Menu_Button menu( 0,0,0,0);
+    for_each( _rowHeaderPopItems.begin(), _rowHeaderPopItems.end(), 
+              [&]( MenuItemEx *pItem ) 
+    {
+        menu.add( pItem->label.c_str(), 
+                 pItem->shortcut, 
+                 (Fl_Callback*) 0, 
+                 pItem->userdata, 
+                 pItem->flags );
+    });
+ 
+    menu.position( x, y );
+    const Fl_Menu_Item *pSelItem = menu.popup();
+    if( pSelItem ) {
+        if( !strcmp( pSelItem->label(), ROW_COPY ) ) {
+            //copy row values to clipboard
+            copyRowValuesToClipboard( r );
+        } else {
+            //custom menu item, call callback
+            for( auto itr = _rowHeaderPopItems.begin(); 
+                 itr != _rowHeaderPopItems.end(); itr++ ) 
+            {
+                MenuItemEx *pItem = *itr;
+                if( pItem->cb && !strcmp( pItem->label.c_str(), pSelItem->label() ) ) {
+                    (pItem->cb)( CONTEXT_ROW_HEADER, 
+                                 pItem->id, 
+                                 r, 
+                                 -1, 
+                                 pItem->userdata );
+                }
+            }
+        }
+    }
+}
+
 void SimpleTable::handleCellPopup( int x, int y, int r, int c ) {
-    Fl_Menu_Button btn( 0, 0,0,0 );
+    Fl_Menu_Button btn( 0,0,0,0 );
     for_each( _cellPopItems.begin(), _cellPopItems.end(), [&]( MenuItemEx *pItem ) {
         string label = pItem->label;
         if( _pData && label == ROWS  ) {
@@ -720,6 +807,16 @@ void SimpleTable::copyColumnValuesToClipboard( int col, bool withSeparator ) {
 		}
 		s.append( NEXTROW );
 	}
+	Fl::copy( s.c_str(), s.length(), 1 );
+}
+
+void SimpleTable::copyRowValuesToClipboard( int row )  {
+    string s;
+	for( int c = 0, cmax = cols(); c < cmax; c++ ) {
+		s.append( _pData->getValue( row, c, "" ) );
+		s.append( NEXTCOL );
+	}
+    s.append( NEXTROW );
 	Fl::copy( s.c_str(), s.length(), 1 );
 }
 

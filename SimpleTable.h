@@ -145,13 +145,16 @@ public:
     void setResizeMode( ResizeMode mode ) { _resizeMode = mode; }
     void setResizeCallback( ResizeCallback, void * );
     virtual void resize(int x, int y, int w, int h);
+    
 	/**sets rows and cols to zero; releases pointer to TableData.
 	   Does *not* delete TableData. */
 	void releaseTableData();
+    
     /**fills the available table width by dividing table width by
      the number of columns and giving all columns the same 
      width*/
     void makeColumnsFit();
+    
 	/**makes a column fit to its widest content.
 	   if skipHiddenColumns == false, hidden columns will be unhide()ed 
 	   and adapted like the unhidden columns */
@@ -174,7 +177,16 @@ public:
        items (Copy, Paste, Search) */ 
     void addCellPopupItem( const char *pLabel, int shortcut, int flags, 
                            PopupMenuCallback, int id, void *pUserdata );
-
+    
+    /**adds a Menu-Item to the rowheader popup menu.
+       Custom menu items will be added behind SimpleTable's own
+       item "Copy Row Values" */ 
+    void addRowHeaderPopupItem( const char *pLabel, int shortcut, int flags, 
+                                PopupMenuCallback, int id, void *pUserdata );
+    
+    MenuItemEx *createMenuItemEx( const char *pLabel, int shortcut, int flags,
+                                  PopupMenuCallback cb, int id, void *pUserdata );
+    
     virtual ~SimpleTable();
 protected:
     virtual void draw_cell( TableContext context, int = 0, int = 0, int = 0, 
@@ -184,6 +196,7 @@ protected:
        Fills possibly occuring empty spaces by expanding the 
        last column*/
     virtual void checkEmptySpaceAndFill();
+    bool isInCurrentSelection( int r, int c );
    
 private:
 	void tableDataCallback( my::TableData &src, my::DataChangedEvent &evt );
@@ -193,12 +206,14 @@ private:
     static void onScrollStatic( Fl_Widget *, void * );
     void onScroll( Fl_Scrollbar * );
     void doSelectionCallback( Fl_Table_Copy::TableContext );
-    void createCellPopup();
+    void createCellAndRowPopup();
     void handlePopup( TableContext context, int x, int y, int r, int c );
     void handleColumnHeaderPopup( int x, int y, int c );
+    void handleRowHeaderPopup( int x, int y, int r );
     void handleCellPopup( int x, int y, int r, int c );
     void copySelectionToClipboard();
     void copyColumnValuesToClipboard( int col, bool withSeparator );
+    void copyRowValuesToClipboard( int row );
     void createAllColumnsSubmenu( Fl_Menu_Button &menu );
     /** sorts columns in submenu */
     static bool alphaSort( const char *pVal1, const char *pVal2 );
@@ -218,8 +233,10 @@ private:
     ResizeMode _resizeMode;
 	ICellStyleProvider *_pCellStyleProvider;
 	std::string _id;
+    std::vector<MenuItemEx*> _rowHeaderPopItems;
     std::vector<MenuItemEx*> _cellPopItems;
     my::SortDirection _sortDirection;
+    int _sortedColumn;
 };
 
 #endif /* FLX_SPREADSHEET_H */
