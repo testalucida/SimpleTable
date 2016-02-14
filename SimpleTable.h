@@ -26,29 +26,32 @@ enum ResizeMode {
     RESIZEMODE_ALL_COLS  
 };
 
-//enum SortDirection {
-//    SORTDIRECTION_ASC,
-//    SORTDIRECTION_DESC,
-//    SORTDIRECTION_NONE
-//};
-
-
 class DefaultCellStyleProvider : public ICellStyleProvider {
 public:
 	DefaultCellStyleProvider();
-	virtual const BackgroundStyle& getBackgroundStyle( int row, int colIdxView, int
-	colIdxModel, bool isSelected );
-	virtual const FontStyle& getFontAndColor( int row, int colIdxView, int
-	colIdxModel );
-	virtual const FontStyle& getDefaultFontAndColor( Fl_Table_Copy::TableContext
-	context ) const;
-	virtual void setAlternatingColumnColor( Fl_Color color = fl_lighter(
-	fl_rgb_color( 242, 234, 255 ) ) ) {
+    
+	virtual const BackgroundStyle& 
+    getBackgroundStyle( int row, int colIdxView, int colIdxModel, bool isSelected );
+    
+	virtual const FontStyle& 
+    getFontAndColor( int row, int colIdxView, int colIdxModel, bool isSelected );
+    
+	virtual const FontStyle& 
+    getDefaultFontAndColor( Fl_Table_Copy::TableContext	context ) const;
+    
+	virtual void 
+    setAlternatingColumnColor( Fl_Color color = 
+                               fl_lighter( fl_rgb_color( 242, 234, 255 ) ) ) 
+     
+    {
 		_alternatingColumnColor = color;
 		_isAlternatingColumnColor = color == _cellBackground.backColor ? false : true;
 	}
-	virtual void setAlternatingRowColor( Fl_Color color = fl_lighter( fl_rgb_color(
-	242, 234, 255 ) ) ) {
+    
+	virtual void 
+    setAlternatingRowColor( Fl_Color color = 
+                            fl_lighter( fl_rgb_color( 242, 234, 255 ) ) ) 
+    {
 		_alternatingRowColor = color;
 		_isAlternatingRowColor = true;
 	}

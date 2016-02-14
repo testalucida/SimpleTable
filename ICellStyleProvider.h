@@ -35,10 +35,12 @@ struct FontStyle {
 
 class ICellStyleProvider {
 public:
-	virtual const BackgroundStyle& getBackgroundStyle( int row, int colIdxView, int
-	colIdxModel, bool isSelected ) = 0;
-	virtual const FontStyle& getFontAndColor( int row, int colIdxView, int
-	colIdxModel ) = 0;
+	virtual const BackgroundStyle& 
+    getBackgroundStyle( int row, int colIdxView, int colIdxModel, bool isSelected ) = 0;
+    
+	virtual const FontStyle& 
+    getFontAndColor( int row, int colIdxView, int colIdxModel, bool isSelected ) = 0;
+    
 	virtual const FontStyle& getDefaultFontAndColor( Fl_Table_Copy::TableContext
 	context ) const = 0;
 	virtual void setAlternatingColumnColor( Fl_Color color ) = 0;

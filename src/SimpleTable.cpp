@@ -27,7 +27,8 @@ DefaultCellStyleProvider::DefaultCellStyleProvider()
 	_rowHeaderBackground.backColor = fl_lighter( FL_GRAY );
 }
 
-const BackgroundStyle& DefaultCellStyleProvider::getBackgroundStyle( int row, int colIdxView, int colIdxModel, bool isSelected ) 								
+const BackgroundStyle& 
+DefaultCellStyleProvider::getBackgroundStyle( int row, int colIdxView, int colIdxModel, bool isSelected ) 								
 {
 	if( row < 0 ) {
 		return _colHeaderBackground;
@@ -52,7 +53,9 @@ const BackgroundStyle& DefaultCellStyleProvider::getBackgroundStyle( int row, in
 	}
 }
 
-const FontStyle& DefaultCellStyleProvider::getFontAndColor( int row, int colIdxView, int colIdxModel ) 
+const FontStyle& 
+DefaultCellStyleProvider::getFontAndColor( int row, int colIdxView, int colIdxModel,
+                                           bool isSelected ) 
 {
 	if( row < 0 ) {
 		//column header style
@@ -321,7 +324,7 @@ void SimpleTable::draw_cell( TableContext context, int R, int C, int X, int Y, i
         case CONTEXT_STARTPAGE: // table about to redraw
             break;
         case CONTEXT_COL_HEADER: // table wants us to draw a column heading (C is column)
-			fl_font( FL_HELVETICA, _pCellStyleProvider->getFontAndColor( -1, C, c ).size ); // _headerFontsize ); // set font for heading to bold
+			fl_font( FL_HELVETICA, _pCellStyleProvider->getFontAndColor( -1, C, c, false ).size ); // _headerFontsize ); // set font for heading to bold
             fl_push_clip( X - 1, Y, W, H ); // clip region for text
         {
             fl_draw_box( FL_FLAT_BOX, X, Y, W, H, col_header_color( ) );
@@ -346,7 +349,7 @@ void SimpleTable::draw_cell( TableContext context, int R, int C, int X, int Y, i
             fl_pop_clip( );
             return;
         case CONTEXT_ROW_HEADER: // table wants us to draw a row heading (R is row)
-			fl_font( FL_HELVETICA, _pCellStyleProvider->getFontAndColor( R, -1, -1 ).size ); // set font for row heading to bold
+			fl_font( FL_HELVETICA, _pCellStyleProvider->getFontAndColor( R, -1, -1, false ).size ); // set font for row heading to bold
             fl_push_clip( X, Y - 1, W + 1, H );
         {
             fl_draw_box( FL_FLAT_BOX, X, Y, W, H, row_header_color( ) );
@@ -368,11 +371,10 @@ void SimpleTable::draw_cell( TableContext context, int R, int C, int X, int Y, i
             // Background
 //            fl_draw_box( FL_FLAT_BOX, X - 1, Y - 1, W + 2, H + 2, 
 						
-			BackgroundStyle backstyle = _pCellStyleProvider->getBackgroundStyle( R, C, c,
-			is_selected( R, C ) );
-			//fprintf( stderr, "drawing cell: %d, %d -- selected: %s ==> backColor: %d\n",
+			BackgroundStyle backstyle = 
+                    _pCellStyleProvider->getBackgroundStyle( R, C, c,
+			                                                 is_selected( R, C ) );
 			
-			//	     R, C, is_selected( R, C ) ? "true" : "false", backstyle.backColor );
 			fl_draw_box( backstyle.boxtype, X, Y, W, H, backstyle.backColor );             
 			         
             
@@ -383,7 +385,8 @@ void SimpleTable::draw_cell( TableContext context, int R, int C, int X, int Y, i
             fl_line( X, Y - 1, X + W - 1, Y - 1, X + W - 1, Y + H );
             
             if( _pData ) {				
-				FontStyle fontstyle = _pCellStyleProvider->getFontAndColor( R, C, c );				
+				FontStyle fontstyle = 
+                        _pCellStyleProvider->getFontAndColor( R, C, c, is_selected( R, C ) );				
                 fl_color( fontstyle.color );
                 fl_font( fontstyle.font, fontstyle.size );
                 fl_draw( _pData->getValue( R,  c ), 
@@ -547,8 +550,8 @@ void SimpleTable::adaptColumnWidthToContent( bool skipHiddenColumns ) {
     int fs = fl_size();
     
     for( int c = 0, cmax = cols(); c < cmax; c++ ) {
-		fl_font( labelfont(), _pCellStyleProvider->getFontAndColor( -1, c,
-		getModelIndex( c ) ).size );
+		fl_font( labelfont(), 
+                 _pCellStyleProvider->getFontAndColor( -1, c, getModelIndex( c ), false ).size );
 		if( col_width( c ) > 0 || !skipHiddenColumns ) {
 			colWidth2Content( c );
 		}
@@ -562,8 +565,10 @@ void SimpleTable::adaptColumnWidthToContent( bool skipHiddenColumns ) {
 void SimpleTable::adaptColumnWidthToContent( int colIdx ) {
 	Fl_Font f = fl_font();
 	int fs = fl_size();
-	fl_font( labelfont(), _pCellStyleProvider->getFontAndColor( -1, colIdx,
-	getModelIndex( colIdx ) ).size );
+	fl_font( labelfont(), 
+             _pCellStyleProvider->
+                  getFontAndColor( -1, colIdx,
+	                               getModelIndex( colIdx ), false ).size );
 
 	colWidth2Content( colIdx );
 
