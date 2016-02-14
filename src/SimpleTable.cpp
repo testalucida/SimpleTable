@@ -93,6 +93,11 @@ Fl_Table_Copy::TableContext context ) const {
  //===========================================================================
 //===========================================================================       
 
+const char *COPY =  "Kopieren   ";
+const char *PASTE = "Einfügen   ";
+const char *SEARCH = "Suchen... ";
+const char *ROWS   = "Zeilen:   ";
+
 SimpleTable::SimpleTable( int X, int Y, int W, int H, const char* L )
 : Fl_Table_Copy( X, Y, W, H, L )
 , _pData( NULL )
@@ -125,10 +130,11 @@ SimpleTable::SimpleTable( int X, int Y, int W, int H, const char* L )
 }
 
 void SimpleTable::createCellPopup() {
-    addCellPopupItem("Kopieren    ", FL_CTRL+'c', 0 /*flags*/, 0 /*PopupMenuCallback*/, -1, 0 );
-    addCellPopupItem( "Einfügen   ", FL_CTRL+'p', FL_MENU_DIVIDER | FL_MENU_INACTIVE, 0, -1, 0 );
-    addCellPopupItem( "Suchen...  ", FL_CTRL+'f', FL_MENU_DIVIDER, 0, -1, 0 );
-    addCellPopupItem( "Zeilen:    ",           0, FL_MENU_INACTIVE, 0, -1, 0 );
+    addCellPopupItem( ROWS, 0, FL_MENU_INACTIVE, 0, -1, 0 );
+    addCellPopupItem( COPY, FL_CTRL+'c', 0 /*flags*/, 0 /*PopupMenuCallback*/, -1, 0 );
+    addCellPopupItem( PASTE, FL_CTRL+'p', FL_MENU_DIVIDER | FL_MENU_INACTIVE, 0, -1, 0 );
+    addCellPopupItem( SEARCH, FL_CTRL+'f', FL_MENU_DIVIDER | FL_MENU_INACTIVE, 0, -1, 0 );
+    
 }
 
 void SimpleTable::setTableData( my::TableData *pDataTable ) {
@@ -217,7 +223,10 @@ int SimpleTable::handle( int evt ) {
             if( !canSelectCell( r, c ) ) {
                 return 1;
             } else {
-                Fl_Table_Copy::handle( evt );
+                Fl_Table_Copy::handle( evt );                
+                if( Fl::event_state( FL_BUTTON3 ) ) {
+                    set_selection( r, c, r, c );
+                }
                 doSelectionCallback( context );
                 if( Fl::event_state( FL_BUTTON3 ) ) {
                     showPopup( context, Fl::event_x(), Fl::event_y(), r, c );
@@ -554,6 +563,7 @@ void SimpleTable::releaseTableData() {
 	redraw();
 }
 
+/** adds a Menu Item before the ROWS-Item */
 void SimpleTable::addCellPopupItem( const char *pLabel, int shortcut, int flags,
                                     PopupMenuCallback cb, int id, void *pUserdata ) 
 {
@@ -564,14 +574,24 @@ void SimpleTable::addCellPopupItem( const char *pLabel, int shortcut, int flags,
     ex->id = id;
     ex->userdata = pUserdata;
     ex->cb = cb;
-    _cellPopupItems.push_back( ex );
+    
+    auto itr = _cellPopItems.begin();
+    for( ; itr != _cellPopItems.end(); itr++ ) {
+        MenuItemEx *pItem = *itr;
+        if( !strcmp( pItem->label.c_str(), ROWS ) ) {
+            _cellPopItems.insert( itr, ex );
+            return;
+        }
+    }
+    
+    _cellPopItems.push_back( ex );
 }
 
 void SimpleTable::showPopup( TableContext context, int x, int y, int r, int c ) {
     if( context == CONTEXT_COL_HEADER ) {
         showColumnHeaderPopup( x, y, c );
     } else if( context == CONTEXT_CELL ) {
-        showCellHeaderPopup( x, y, r, c );
+        handleCellPopup( x, y, r, c );
     }
 }
 
@@ -579,11 +599,11 @@ void SimpleTable::showColumnHeaderPopup( int x, int y, int c  ) {
     
 }
 
-void SimpleTable::showCellHeaderPopup( int x, int y, int r, int c ) {
+void SimpleTable::handleCellPopup( int x, int y, int r, int c ) {
     Fl_Menu_Button btn( 0, 0,0,0 );
-    for_each( _cellPopupItems.begin(), _cellPopupItems.end(), [&]( MenuItemEx *pItem ) {
+    for_each( _cellPopItems.begin(), _cellPopItems.end(), [&]( MenuItemEx *pItem ) {
         string label = pItem->label;
-        if( _pData && label.length() > 7 && label.substr( 0, 7 ) == "Zeilen:"  ) {
+        if( _pData && label == ROWS  ) {
             label.append( to_string( _pData->getRowCount() ) );
         }
         btn.add( label.c_str(), 
@@ -607,12 +627,13 @@ void SimpleTable::showCellHeaderPopup( int x, int y, int r, int c ) {
                 search();
                 break;
             default:
-                for( auto itr = _cellPopupItems.begin(); 
-                     itr != _cellPopupItems.end(); itr++ ) 
+                //custom menu item
+                for( auto itr = _cellPopItems.begin(); 
+                     itr != _cellPopItems.end(); itr++ ) 
                 {
                     MenuItemEx *pItem = *itr;
-                    if( ! strcmp( pItem->label.c_str(), pSel->label() ) ) {
-                        (pItem->cb)( pItem->id, pItem->userdata );
+                    if( pItem->cb && !strcmp( pItem->label.c_str(), pSel->label() ) ) {
+                        (pItem->cb)( CONTEXT_CELL, pItem->id, r, getModelIndex( c ), pItem->userdata );
                     }
                 }
                 break;
@@ -646,7 +667,7 @@ SimpleTable::~SimpleTable() {
     /*TODO: delete DefaultCellStyleProvider, aber NICHT
     einen CustomCellStyleProvider*/
     
-    for( auto itr = _cellPopupItems.begin(); itr != _cellPopupItems.end(); itr++) {
+    for( auto itr = _cellPopItems.begin(); itr != _cellPopItems.end(); itr++) {
 //        _cellPopupItems.erase( itr );
         delete *itr;
     }

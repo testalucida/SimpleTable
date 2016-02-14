@@ -71,7 +71,14 @@ protected:
 typedef void (*ScrollCallback) (char orientiation, int scrollvalue, void * );
 typedef void (*SelectionCallback) (Fl_Table_Copy::TableContext, int r1, int c1, int r2, int c2, void * );
 typedef void (*ResizeCallback) (int x, int y, int w, int h, void * );
-typedef void (*PopupMenuCallback) ( int id, void * );
+
+/** callback after having selected a popup menu item.
+    TableContext: CONTEXT_CELL, CONTEXT_COL_HEADER, CONTEXT_ROW_HEADER
+    id: custom id
+     r: row selected
+     c: col selected (that's the model index, *not* the view index
+     void *: userdata */
+typedef void (*PopupMenuCallback) ( Fl_Table_Copy::TableContext, int id, int r, int c, void * );
 
 struct Fl_Menu_Item;
 class Fl_Menu_Button;
@@ -148,7 +155,9 @@ public:
 	/**gets the ID */
 	const std::string& getId() const { return _id; }
     
-    /**adds a Menu-Item to the cell popup menu*/ 
+    /**adds a Menu-Item to the cell popup menu.
+       Custom Menu Items will be added behind SimpleTable's own
+       items (Copy, Paste, Search) */ 
     void addCellPopupItem( const char *pLabel, int shortcut, int flags, 
                            PopupMenuCallback, int id, void *pUserdata );
 
@@ -172,7 +181,7 @@ private:
     void createCellPopup();
     void showPopup( TableContext context, int x, int y, int r, int c );
     void showColumnHeaderPopup( int x, int y, int c );
-    void showCellHeaderPopup( int x, int y, int r, int c );
+    void handleCellPopup( int x, int y, int r, int c );
     void copySelectionToClipboard();
     void search();
 private:
@@ -190,7 +199,7 @@ private:
     ResizeMode _resizeMode;
 	ICellStyleProvider *_pCellStyleProvider;
 	std::string _id;
-    std::vector<MenuItemEx*> _cellPopupItems;
+    std::vector<MenuItemEx*> _cellPopItems;
 //    Fl_Menu_Button *_pCellPop;
 //    Fl_Menu_Item *_pCellPop;
 };
