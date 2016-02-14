@@ -26,6 +26,13 @@ enum ResizeMode {
     RESIZEMODE_ALL_COLS  
 };
 
+//enum SortDirection {
+//    SORTDIRECTION_ASC,
+//    SORTDIRECTION_DESC,
+//    SORTDIRECTION_NONE
+//};
+
+
 class DefaultCellStyleProvider : public ICellStyleProvider {
 public:
 	DefaultCellStyleProvider();
@@ -69,7 +76,8 @@ protected:
 
 
 typedef void (*ScrollCallback) (char orientiation, int scrollvalue, void * );
-typedef void (*SelectionCallback) (Fl_Table_Copy::TableContext, int r1, int c1, int r2, int c2, void * );
+typedef void (*SelectionCallback) ( Fl_Table_Copy::TableContext, int r1, int c1, 
+                                    int r2, int c2, void * );
 typedef void (*ResizeCallback) (int x, int y, int w, int h, void * );
 
 /** callback after having selected a popup menu item.
@@ -78,7 +86,8 @@ typedef void (*ResizeCallback) (int x, int y, int w, int h, void * );
      r: row selected
      c: col selected (that's the model index, *not* the view index
      void *: userdata */
-typedef void (*PopupMenuCallback) ( Fl_Table_Copy::TableContext, int id, int r, int c, void * );
+typedef void (*PopupMenuCallback) ( Fl_Table_Copy::TableContext, int id, 
+                                    int r, int c, void * );
 
 struct Fl_Menu_Item;
 class Fl_Menu_Button;
@@ -121,8 +130,11 @@ public:
     const;
     inline int getModelIndex( int viewIndex ) const;
 	inline int getViewIndex( int modelIndex ) const;
-    void setAlternatingColumnColor( Fl_Color color = fl_lighter( fl_rgb_color( 242, 234, 255 ) ) );    
-    void setAlternatingRowColor( Fl_Color color = fl_lighter( fl_rgb_color( 242, 234, 255 ) ) );
+    int getViewIndex( const char *pLabel ) const;
+    void setAlternatingColumnColor( Fl_Color color = 
+                                 fl_lighter( fl_rgb_color( 242, 234, 255 ) ) );    
+    void setAlternatingRowColor( Fl_Color color = 
+                                 fl_lighter( fl_rgb_color( 242, 234, 255 ) ) );
     int getVScrollbarWidth() const;
     /**return the width of all columns optional including rowheader */
     int getAllColumnsWidth( bool includeRowHeader = true );
@@ -147,7 +159,9 @@ public:
 	void adaptColumnWidthToContent( int colIdx );
 	
 	/** set a ICellStyleProvider for drawing cell operations */
-	void setCellStyleProvider( ICellStyleProvider *pProvider ) { _pCellStyleProvider = pProvider; }
+	void setCellStyleProvider( ICellStyleProvider *pProvider ) { 
+        _pCellStyleProvider = pProvider; 
+    }
 
 	/**sets an ID for identifying purposes*/
 	void setId( const std::string &id ) { _id = id; }
@@ -163,7 +177,8 @@ public:
 
     virtual ~SimpleTable();
 protected:
-    virtual void draw_cell( TableContext context, int = 0, int = 0, int = 0, int = 0, int = 0, int = 0 );
+    virtual void draw_cell( TableContext context, int = 0, int = 0, int = 0, 
+                            int = 0, int = 0, int = 0 );
     
     /**is beeing called if the user resizes a column.
        Fills possibly occuring empty spaces by expanding the 
@@ -179,10 +194,14 @@ private:
     void onScroll( Fl_Scrollbar * );
     void doSelectionCallback( Fl_Table_Copy::TableContext );
     void createCellPopup();
-    void showPopup( TableContext context, int x, int y, int r, int c );
-    void showColumnHeaderPopup( int x, int y, int c );
+    void handlePopup( TableContext context, int x, int y, int r, int c );
+    void handleColumnHeaderPopup( int x, int y, int c );
     void handleCellPopup( int x, int y, int r, int c );
     void copySelectionToClipboard();
+    void copyColumnValuesToClipboard( int col, bool withSeparator );
+    void createAllColumnsSubmenu( Fl_Menu_Button &menu );
+    /** sorts columns in submenu */
+    static bool alphaSort( const char *pVal1, const char *pVal2 );
     void search();
 private:
     my::TableData *_pData;
@@ -200,8 +219,7 @@ private:
 	ICellStyleProvider *_pCellStyleProvider;
 	std::string _id;
     std::vector<MenuItemEx*> _cellPopItems;
-//    Fl_Menu_Button *_pCellPop;
-//    Fl_Menu_Item *_pCellPop;
+    my::SortDirection _sortDirection;
 };
 
 #endif /* FLX_SPREADSHEET_H */
