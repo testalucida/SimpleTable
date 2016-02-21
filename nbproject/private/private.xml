@@ -4,7 +4,7 @@
         <activeConfTypeElem>3</activeConfTypeElem>
         <activeConfIndexElem>0</activeConfIndexElem>
     </data>
-    <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="1">
+    <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="4">
         <file>
             <url>SimpleTable.cpp</url>
             <bookmark id="1">
@@ -13,13 +13,19 @@
                 <key/>
             </bookmark>
         </file>
+        <file>
+            <url>src/SimpleTable.cpp</url>
+            <bookmark id="2">
+                <name/>
+                <line>686</line>
+                <key/>
+            </bookmark>
+        </file>
     </editor-bookmarks>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/home/max/cpp/fltk/SimpleTable/Fl_Table_Copy.h</file>
-            <file>file:/home/max/cpp/fltk/SimpleTable/TwoTables.h</file>
+            <file>file:/home/max/cpp/fltk/SimpleTable/ICellStyleProvider.h</file>
             <file>file:/home/max/cpp/fltk/SimpleTable/SimpleTable.h</file>
-            <file>file:/home/max/cpp/fltk/SimpleTable/src/SimpleTable.cpp</file>
         </group>
     </open-files>
 </project-private>
